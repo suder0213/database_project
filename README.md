@@ -37,6 +37,7 @@ python main.py
 ```
 
 ### 4. 프론트엔드 실행
+(주의) 실행 전 Node.js 설치 필수
 ```bash
 # frontend 디렉토리로 이동
 cd frontend
