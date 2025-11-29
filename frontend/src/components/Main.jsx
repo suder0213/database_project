@@ -43,7 +43,7 @@ function Main() {
           filter: showLoginModal ? 'blur(5px)' : 'none',
           pointerEvents: showLoginModal ? 'none' : 'auto',
           userSelect: showLoginModal ? 'none' : 'auto',
-          overflow: showLoginModal ? 'hidden' : 'auto'
+          overflow: 'hidden'
         }}
         onMouseDown={(e) => showLoginModal && e.preventDefault()}
         onTouchStart={(e) => showLoginModal && e.preventDefault()}
@@ -74,21 +74,23 @@ function Main() {
         )}
 
         {/* 왼쪽 사이드바 - 오버레이 스타일 */}
-        {showSidebar && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '350px',
-            height: '100%',
-            backgroundColor: 'white',
-            borderRight: '1px solid #dbdbdb',
-            padding: '24px 16px',
-            boxSizing: 'border-box',
-            overflowY: 'hidden',
-            zIndex: 1000,
-            boxShadow: '2px 0 8px rgba(0,0,0,0.1)'
-          }}>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: showSidebar ? 0 : '-350px',
+          width: '350px',
+          height: '100%',
+          backgroundColor: 'white',
+          borderRight: '1px solid #dbdbdb',
+          padding: '24px 16px',
+          boxSizing: 'border-box',
+          overflowY: 'hidden',
+          zIndex: 1000,
+          boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
+          transition: 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          transform: showSidebar ? 'translateX(0) scale(1)' : 'translateX(-100%) scale(0.95)',
+          opacity: showSidebar ? 1 : 0
+        }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -161,8 +163,7 @@ function Main() {
             >
               ✕
             </button>
-          </div>
-        )}
+        </div>
 
         {/* 패널 토글 버튼 */}
         {!showPanel && (
@@ -193,19 +194,39 @@ function Main() {
                 .no-scrollbar::-webkit-scrollbar {
                   display: none;
                 }
+                .panel-slide-in {
+                  animation: slideInFromRight 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                @keyframes slideInFromRight {
+                  0% {
+                    transform: translateX(100%) scale(0.8) rotateY(15deg);
+                    opacity: 0;
+                    filter: blur(10px);
+                  }
+                  50% {
+                    transform: translateX(-10px) scale(1.02) rotateY(-2deg);
+                    opacity: 0.8;
+                    filter: blur(2px);
+                  }
+                  100% {
+                    transform: translateX(0) scale(1) rotateY(0deg);
+                    opacity: 1;
+                    filter: blur(0px);
+                  }
+                }
               `}
             </style>
-            <div className="no-scrollbar" style={{
+            <div className="no-scrollbar panel-slide-in" style={{
               position: 'absolute',
               top: 0,
               right: 0,
-              width: '380px',
+              width: '400px',
               height: '100%',
               backgroundColor: 'white',
               borderLeft: '1px solid #dbdbdb',
-              padding: '16px',
+              padding: '20px',
               boxSizing: 'border-box',
-              overflowY: 'scroll',
+              overflowY: 'auto',
               zIndex: 1000,
               boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
               scrollbarWidth: 'none',
@@ -270,7 +291,8 @@ function Main() {
                   fontSize: '14px',
                   backgroundColor: '#fafafa',
                   outline: 'none',
-                  transition: 'border-color 0.2s'
+                  transition: 'border-color 0.2s',
+                  boxSizing: 'border-box'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#0095f6'}
                 onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
@@ -299,7 +321,8 @@ function Main() {
                   fontSize: '14px',
                   backgroundColor: '#fafafa',
                   outline: 'none',
-                  transition: 'border-color 0.2s'
+                  transition: 'border-color 0.2s',
+                  boxSizing: 'border-box'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#0095f6'}
                 onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
@@ -329,7 +352,8 @@ function Main() {
                   resize: 'none',
                   outline: 'none',
                   fontFamily: 'inherit',
-                  transition: 'border-color 0.2s'
+                  transition: 'border-color 0.2s',
+                  boxSizing: 'border-box'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#0095f6'}
                 onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
@@ -365,7 +389,8 @@ function Main() {
                 fontWeight: '600',
                 cursor: 'pointer',
                 outline: 'none',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                boxSizing: 'border-box'
               }}
               onMouseEnter={(e) => {
                 e.target.style.transform = 'translateY(-2px)';
@@ -379,22 +404,7 @@ function Main() {
               📍 스토리 생성하기
             </button>
 
-            <div style={{
-              marginTop: '24px',
-              padding: '16px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '12px',
-              border: '1px solid #e1e8ed',
-              fontSize: '12px',
-              color: '#65676b',
-              lineHeight: '1.4'
-            }}>
-              💡 <strong>사용법:</strong><br />
-              1. 위도/경도 입력 (예: 37.4979, 127.0276)<br />
-              2. 스토리 내용 작성<br />
-              3. 생성 버튼 클릭<br />
-              4. 지도에서 마커 클릭하여 확인
-            </div>
+
             </div>
           </>
         )}
