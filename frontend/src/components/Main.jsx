@@ -10,6 +10,10 @@ function Main() {
   const [content, setContent] = useState('');
   const [showSidebar, setShowSidebar] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
+  const [buttonPosition, setButtonPosition] = useState({ top: '50%', right: '20px' });
+  const [isDragging, setIsDragging] = useState(false);
+  const [sidebarOpacity, setSidebarOpacity] = useState(0.95);
+  const [panelOpacity, setPanelOpacity] = useState(0.95);
 
   const handleLogin = (user) => {
     setUser(user);
@@ -23,6 +27,58 @@ function Main() {
 
   const handleCreateStory = (storyData) => {
     // 스토리 생성 로직은 Map 컴포넌트에서 처리
+  };
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('이 브라우저에서는 위치 서비스를 지원하지 않습니다.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLat(position.coords.latitude.toString());
+        setLng(position.coords.longitude.toString());
+      },
+      (error) => {
+        console.error('위치 가져오기 실패:', error);
+        alert('위치를 가져올 수 없습니다. 위치 권한을 확인해주세요.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+
+  // 지도 클릭으로 좌표 설정 받는 함수
+  window.setMapClickLocation = (latitude, longitude) => {
+    setLat(latitude.toString());
+    setLng(longitude.toString());
+  };
+
+  const moveToCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('이 브라우저에서는 위치 서비스를 지원하지 않습니다.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Map 컴포넌트에 위치 이동 요청
+        window.moveMapToLocation?.(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        console.error('위치 가져오기 실패:', error);
+        alert('위치를 가져올 수 없습니다. 위치 권한을 확인해주세요.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
   };
 
   return (
@@ -51,6 +107,120 @@ function Main() {
       >
         {/* 지도 - 전체 화면 */}
         <Map user={user} />
+
+        {/* 현재 위치로 이동 버튼 */}
+        <div 
+          style={{ 
+            position: 'absolute', 
+            top: buttonPosition.top, 
+            right: buttonPosition.right, 
+            transform: 'translateY(-50%)', 
+            zIndex: 1001,
+            cursor: isDragging ? 'grabbing' : 'grab'
+          }}
+          onMouseDown={(e) => {
+            setIsDragging(true);
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const rect = e.currentTarget.getBoundingClientRect();
+            const offsetX = startX - rect.left;
+            const offsetY = startY - rect.top;
+            
+            const handleMouseMove = (e) => {
+              const newRight = window.innerWidth - e.clientX - offsetX;
+              const newTop = e.clientY - offsetY;
+              setButtonPosition({ 
+                top: Math.max(0, Math.min(window.innerHeight - 50, newTop)) + 'px',
+                right: Math.max(0, Math.min(window.innerWidth - 50, newRight)) + 'px'
+              });
+            };
+            
+            const handleMouseUp = () => {
+              setIsDragging(false);
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+          }}
+        >
+          <button
+
+            className="location-btn"
+            style={{
+              width: '50px',
+              height: '50px',
+              background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(240, 148, 51, 0.3)',
+              fontSize: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.3s ease',
+              position: 'relative'
+            }}
+            onMouseEnter={(e) => {
+              if (!isDragging) {
+                e.target.style.transform = 'scale(1.1)';
+                e.target.style.boxShadow = '0 6px 20px rgba(240, 148, 51, 0.5)';
+                e.target.nextSibling.style.opacity = '1';
+                e.target.nextSibling.style.transform = 'translateY(-50%) scale(1)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isDragging) {
+                e.target.style.transform = 'scale(1)';
+                e.target.style.boxShadow = '0 4px 12px rgba(240, 148, 51, 0.3)';
+                e.target.nextSibling.style.opacity = '0';
+                e.target.nextSibling.style.transform = 'translateY(-50%) scale(0.8)';
+              }
+            }}
+            onClick={(e) => {
+              if (!isDragging) {
+                moveToCurrentLocation();
+              }
+            }}
+          >
+            🧭
+          </button>
+          <div style={{
+            position: 'absolute',
+            right: '60px',
+            top: '50%',
+            transform: 'translateY(-50%) scale(0.8)',
+            background: 'linear-gradient(135deg, rgba(240, 148, 51, 0.95), rgba(188, 24, 136, 0.95))',
+            color: 'white',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            fontSize: '15px',
+            fontWeight: '600',
+            whiteSpace: 'nowrap',
+            opacity: '0',
+            transition: 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+            pointerEvents: 'none',
+            boxShadow: '0 8px 25px rgba(240, 148, 51, 0.4)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            현재 위치로 이동
+            <div style={{
+              position: 'absolute',
+              right: '-8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: '0',
+              height: '0',
+              borderLeft: '8px solid rgba(240, 148, 51, 0.95)',
+              borderTop: '8px solid transparent',
+              borderBottom: '8px solid transparent',
+              filter: 'drop-shadow(2px 0 4px rgba(240, 148, 51, 0.3))'
+            }}></div>
+          </div>
+        </div>
 
         {/* 사이드바 토글 버튼 */}
         {!showSidebar && (
@@ -81,15 +251,18 @@ function Main() {
           width: '350px',
           height: '100%',
           backgroundColor: 'white',
-          borderRight: '1px solid #dbdbdb',
+          borderRight: '3px solid transparent',
+          backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+          backgroundOrigin: 'border-box',
+          backgroundClip: 'padding-box, border-box',
           padding: '24px 16px',
           boxSizing: 'border-box',
           overflowY: 'hidden',
           zIndex: 1000,
-          boxShadow: '2px 0 8px rgba(0,0,0,0.1)',
+          boxShadow: '2px 0 8px rgba(0,0,0,0.1), 2px 0 20px rgba(240, 148, 51, 0.2), 5px 0 40px rgba(240, 148, 51, 0.1), 10px 0 80px rgba(188, 24, 136, 0.05)',
           transition: 'all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           transform: showSidebar ? 'translateX(0) scale(1)' : 'translateX(-100%) scale(0.95)',
-          opacity: showSidebar ? 1 : 0
+          opacity: showSidebar ? sidebarOpacity : 0
         }}>
             <div style={{
               display: 'flex',
@@ -121,10 +294,14 @@ function Main() {
               padding: '16px',
               backgroundColor: '#f8f9fa',
               borderRadius: '12px',
-              border: '1px solid #e1e8ed',
+              border: '2px solid transparent',
+              backgroundImage: 'linear-gradient(#f8f9fa, #f8f9fa), linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+              backgroundOrigin: 'border-box',
+              backgroundClip: 'padding-box, border-box',
               fontSize: '14px',
               color: '#65676b',
-              lineHeight: '1.4'
+              lineHeight: '1.4',
+              boxShadow: '0 4px 15px rgba(240, 148, 51, 0.1)'
             }}>
               💡 마커를 클릭하면 스토리 카드를 볼 수 있어요!
             </div>
@@ -134,7 +311,11 @@ function Main() {
               padding: '16px',
               backgroundColor: 'white',
               borderRadius: '12px',
-              border: '1px solid #e1e8ed'
+              border: '2px solid transparent',
+              backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+              backgroundOrigin: 'border-box',
+              backgroundClip: 'padding-box, border-box',
+              boxShadow: '0 4px 15px rgba(240, 148, 51, 0.1)'
             }}>
               <h3 style={{
                 margin: '0 0 12px 0',
@@ -144,6 +325,89 @@ function Main() {
               }}>🎆 인기 지역</h3>
               <div style={{ fontSize: '14px', color: '#65676b' }}>
                 강남역, 명동, 홍대, 이태원
+              </div>
+            </div>
+
+            {/* 투명도 조절 슬라이더 */}
+            <div style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '16px',
+              right: '16px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '16px',
+              padding: '16px',
+              border: '1px solid rgba(240, 148, 51, 0.2)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <label style={{
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{
+                    width: '16px',
+                    height: '16px',
+                    background: 'linear-gradient(45deg, #f09433, #bc1888)',
+                    borderRadius: '50%',
+                    display: 'inline-block'
+                  }}></span>
+                  투명도
+                </label>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: '#bc1888',
+                  background: 'linear-gradient(45deg, #f09433, #bc1888)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>{Math.round(sidebarOpacity * 100)}%</span>
+              </div>
+              <div style={{
+                position: 'relative',
+                height: '6px',
+                background: 'rgba(0, 0, 0, 0.1)',
+                borderRadius: '3px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  height: '100%',
+                  width: `${(sidebarOpacity - 0.3) / 0.7 * 100}%`,
+                  background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                  borderRadius: '3px',
+                  transition: 'width 0.3s ease'
+                }}></div>
+                <input
+                  type="range"
+                  min="0.3"
+                  max="1"
+                  step="0.05"
+                  value={sidebarOpacity}
+                  onChange={(e) => setSidebarOpacity(parseFloat(e.target.value))}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
               </div>
             </div>
 
@@ -223,15 +487,102 @@ function Main() {
               width: '400px',
               height: '100%',
               backgroundColor: 'white',
-              borderLeft: '1px solid #dbdbdb',
+              borderLeft: '3px solid transparent',
+              backgroundImage: 'linear-gradient(white, white), linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+              backgroundOrigin: 'border-box',
+              backgroundClip: 'padding-box, border-box',
               padding: '20px',
               boxSizing: 'border-box',
               overflowY: 'auto',
               zIndex: 1000,
-              boxShadow: '-2px 0 8px rgba(0,0,0,0.1)',
+              boxShadow: '-2px 0 8px rgba(0,0,0,0.1), -2px 0 20px rgba(240, 148, 51, 0.2), -5px 0 40px rgba(240, 148, 51, 0.1), -10px 0 80px rgba(188, 24, 136, 0.05)',
               scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
+              msOverflowStyle: 'none',
+              opacity: panelOpacity
             }}>
+
+            {/* 투명도 조절 슬라이더 */}
+            <div style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '20px',
+              right: '20px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '16px',
+              padding: '16px',
+              border: '1px solid rgba(240, 148, 51, 0.2)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5)'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '12px'
+              }}>
+                <label style={{
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#333',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span style={{
+                    width: '16px',
+                    height: '16px',
+                    background: 'linear-gradient(45deg, #f09433, #bc1888)',
+                    borderRadius: '50%',
+                    display: 'inline-block'
+                  }}></span>
+                  투명도
+                </label>
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  color: '#bc1888',
+                  background: 'linear-gradient(45deg, #f09433, #bc1888)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>{Math.round(panelOpacity * 100)}%</span>
+              </div>
+              <div style={{
+                position: 'relative',
+                height: '6px',
+                background: 'rgba(0, 0, 0, 0.1)',
+                borderRadius: '3px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  height: '100%',
+                  width: `${(panelOpacity - 0.3) / 0.7 * 100}%`,
+                  background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                  borderRadius: '3px',
+                  transition: 'width 0.3s ease'
+                }}></div>
+                <input
+                  type="range"
+                  min="0.3"
+                  max="1"
+                  step="0.05"
+                  value={panelOpacity}
+                  onChange={(e) => setPanelOpacity(parseFloat(e.target.value))}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+              </div>
+            </div>
 
             {/* 패널 닫기 버튼 */}
             <button
@@ -270,13 +621,30 @@ function Main() {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#262626'
-              }}>위도</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#262626'
+                }}>위도</label>
+                <button
+                  onClick={getCurrentLocation}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '12px',
+                    background: 'linear-gradient(45deg, #4CAF50, #45a049)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                >
+                  📍 현재위치
+                </button>
+              </div>
               <input
                 type="number"
                 step="any"
