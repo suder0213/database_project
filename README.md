@@ -6,6 +6,7 @@ database_project/
 ├── Controller/     # API 엔드포인트 (FastAPI 라우터)
 ├── Service/        # 비즈니스 로직 (CRUD 메서드)
 ├── Enitity/        # 데이터 모델 클래스
+├── frontend/       # React 프론트엔드
 ├── main.py         # FastAPI 애플리케이션 진입점
 ├── database.py     # Oracle DB 연결 설정
 └── requirements.txt
@@ -35,8 +36,21 @@ uvicorn main:app --reload
 python main.py
 ```
 
-### 4. API 테스트
-- 서버 주소: http://localhost:8000
+### 4. 프론트엔드 실행
+```bash
+# frontend 디렉토리로 이동
+cd frontend
+
+# 의존성 설치 (최초 1회만)
+npm install
+
+# React 앱 실행
+npm start
+```
+
+### 5. API 테스트
+- 백엔드 서버: http://localhost:8000
+- 프론트엔드: http://localhost:3000
 - API 문서: http://localhost:8000/docs (Swagger UI)
 - ReDoc 문서: http://localhost:8000/redoc
 
@@ -105,3 +119,16 @@ python main.py
 - Oracle DB가 실행 중이어야 함
 - 테이블이 미리 생성되어 있어야 함
 - 테이블명은 대문자로 작성 (USER_T, PLACE, REVIEW, STORY, COMMENT_T, LIKE_T, TAG, STORY_TAG)
+- Node.js가 설치되어 있어야 함 (프론트엔드 실행용)
+- 백엔드(8000포트)와 프론트엔드(3000포트) 모두 실행해야 함
+
+## Node.js PATH 문제 해결
+Node.js가 설치되어 있지만 명령어를 인식하지 못하는 경우:
+```bash
+# PowerShell에서 임시 해결
+$env:PATH += ";C:\Program Files\nodejs"
+
+# 또는 전체 경로로 직접 실행
+"C:\Program Files\nodejs\npm.cmd" install
+"C:\Program Files\nodejs\npm.cmd" start
+```
