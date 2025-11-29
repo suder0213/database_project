@@ -37,7 +37,10 @@ python main.py
 ```
 
 ### 4. 프론트엔드 실행
-(주의) 실행 전 Node.js 설치 필수
+(주의) 실행 전 Node.js 설치 필수 
+(IF) Node.js가 설치되어 있지만 명령어를 인식하지 못하는 경우 :[Node.js PATH 문제 해결로 이동](#nodejs-path-문제-해결)
+
+
 ```bash
 # frontend 디렉토리로 이동
 cd frontend
