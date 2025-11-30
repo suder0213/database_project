@@ -60,6 +60,9 @@ function Map({ user }) {
       console.log('맵 생성 성공! - ID:', Date.now());
       mapInitialized.current = true;
 
+      // 교통정보 추가
+      map.addOverlayMapTypeId(window.kakao.maps.MapTypeId.TRAFFIC);
+
       // 레벨 변경 시 애니메이션 비활성화로 잔상 방지
       const originalSetLevel = map.setLevel;
       map.setLevel = function (level, options) {
@@ -522,6 +525,111 @@ function Map({ user }) {
 
       // 버튼을 맵 컨테이너에 추가
       container.parentElement.appendChild(toggleButton);
+
+      // 지도 타입 변경 기능
+      let currentTypeId = window.kakao.maps.MapTypeId.TRAFFIC; // 기본 교통정보
+      
+      const setOverlayMapTypeId = (maptype) => {
+        let changeMaptype;
+        
+        if (maptype === 'traffic') {
+          changeMaptype = window.kakao.maps.MapTypeId.TRAFFIC;
+        } else if (maptype === 'terrain') {
+          changeMaptype = window.kakao.maps.MapTypeId.TERRAIN;
+        } else if (maptype === 'bicycle') {
+          changeMaptype = window.kakao.maps.MapTypeId.BICYCLE;
+        } else if (maptype === 'use_district') {
+          changeMaptype = window.kakao.maps.MapTypeId.USE_DISTRICT;
+        }
+        
+        if (currentTypeId) {
+          map.removeOverlayMapTypeId(currentTypeId);
+        }
+        
+        if (changeMaptype) {
+          map.addOverlayMapTypeId(changeMaptype);
+          currentTypeId = changeMaptype;
+        } else {
+          currentTypeId = null;
+        }
+      };
+
+      // 지도 타입 버튼들 생성
+      const mapTypeButtons = [
+        { type: 'traffic', icon: '🚗', label: '교통' },
+        { type: 'terrain', icon: '🏔️', label: '지형' },
+        { type: 'bicycle', icon: '🚴', label: '자전거' },
+        { type: 'use_district', icon: '📍', label: '지적' },
+        { type: 'none', icon: '🗺️', label: '기본' }
+      ];
+
+      const buttonContainer = document.createElement('div');
+      buttonContainer.style.cssText = `
+        position: absolute;
+        top: 120px;
+        left: 10px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      `;
+
+      mapTypeButtons.forEach((btn, index) => {
+        const button = document.createElement('button');
+        button.innerHTML = `${btn.icon}<br><span style="font-size: 10px;">${btn.label}</span>`;
+        button.style.cssText = `
+          width: 60px;
+          height: 60px;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          border: 2px solid rgba(240, 148, 51, 0.3);
+          border-radius: 16px;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 600;
+          color: #333;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+          transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          transform: scale(1);
+        `;
+
+        // 호버 효과
+        button.addEventListener('mouseenter', function() {
+          this.style.transform = 'scale(1.1) translateY(-2px)';
+          this.style.background = 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)';
+          this.style.color = 'white';
+          this.style.borderColor = 'transparent';
+          this.style.boxShadow = '0 8px 25px rgba(240, 148, 51, 0.4)';
+        });
+
+        button.addEventListener('mouseleave', function() {
+          this.style.transform = 'scale(1) translateY(0)';
+          this.style.background = 'rgba(255, 255, 255, 0.95)';
+          this.style.color = '#333';
+          this.style.borderColor = 'rgba(240, 148, 51, 0.3)';
+          this.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+        });
+
+        // 클릭 효과
+        button.addEventListener('click', function() {
+          // 클릭 애니메이션
+          this.style.transform = 'scale(0.95)';
+          setTimeout(() => {
+            this.style.transform = 'scale(1.1) translateY(-2px)';
+          }, 100);
+
+          setOverlayMapTypeId(btn.type === 'none' ? null : btn.type);
+        });
+
+        buttonContainer.appendChild(button);
+      });
+
+      container.parentElement.appendChild(buttonContainer);
 
       // 전역 변수로 맵과 오버레이 배열 저장
       window.kakaoMap = map;
