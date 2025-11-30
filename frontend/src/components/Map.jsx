@@ -6,7 +6,35 @@ function Map({ user }) {
   const mapInitialized = useRef(false);
 
   useEffect(() => {
-    const initMap = () => {
+    // 카카오맵 SDK 동적 로딩
+    const loadKakaoMapScript = () => {
+      return new Promise((resolve, reject) => {
+        if (window.kakao && window.kakao.maps) {
+          resolve();
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.REACT_APP_KAKAO_API_KEY}&autoload=false`;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('카카오맵 SDK 로딩 실패'));
+        document.head.appendChild(script);
+      });
+    };
+
+    const initMap = async () => {
+      try {
+        await loadKakaoMapScript();
+        
+        // 카카오맵 SDK 수동 초기화
+        await new Promise((resolve) => {
+          window.kakao.maps.load(resolve);
+        });
+        
+      } catch (error) {
+        console.error('카카오맵 로딩 실패:', error);
+        return;
+      }
       if (mapInitialized.current) {
         console.log('맵 이미 초기화됨 - 중단');
         return;
@@ -70,7 +98,7 @@ function Map({ user }) {
         markerDiv.appendChild(img);
 
         if (clickHandler) {
-          markerDiv.addEventListener('click', function(event) {
+          markerDiv.addEventListener('click', function (event) {
             isMarkerClick = true; // 마커 클릭 플래그 설정
             clickHandler(event);
           });
@@ -238,7 +266,7 @@ function Map({ user }) {
       let isMarkerClick = false;
 
       // 맵 클릭 이벤트 (새 스토리 작성)
-      window.kakao.maps.event.addListener(map, 'click', function(mouseEvent) {
+      window.kakao.maps.event.addListener(map, 'click', function (mouseEvent) {
         // 마커 클릭인 경우 무시
         if (isMarkerClick) {
           isMarkerClick = false;
@@ -248,10 +276,10 @@ function Map({ user }) {
         const latlng = mouseEvent.latLng;
         const latitude = latlng.getLat();
         const longitude = latlng.getLng();
-        
+
         // 오른쪽 패널에 좌표 입력
         window.setLocationFromMap?.(latitude, longitude);
-        
+
         // 지도 클릭으로 스토리 생성 기능 (주석처리)
         /*
           // 새 사진 마커 생성
@@ -402,7 +430,7 @@ function Map({ user }) {
         */
 
 
-          
+
       });
 
       // 전체 오버레이 토글 버튼 생성
@@ -501,18 +529,8 @@ function Map({ user }) {
       window.createPhotoMarker = createPhotoMarker;
     };
 
-    // 카카오맵 로드 확인
-    if (window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(initMap);
-    } else {
-      // 스크립트 로드 대기
-      const checkKakao = setInterval(() => {
-        if (window.kakao && window.kakao.maps) {
-          clearInterval(checkKakao);
-          window.kakao.maps.load(initMap);
-        }
-      }, 100);
-    }
+    // 카카오맵 초기화 시작
+    initMap();
   }, []); // 빈 의존성 배열로 한 번만 실행
 
   // 마커 생성 useEffect

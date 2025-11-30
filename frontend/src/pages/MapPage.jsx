@@ -36,7 +36,7 @@ function MapPage({ onLogout, onShowLogin, isLoggedIn }) {
           {isLoggedIn ? (
             <>
               <span>안녕하세요, {currentUser?.name}님!</span>
-              <button 
+              <button
                 onClick={onLogout}
                 style={{
                   marginLeft: '10px',
@@ -54,7 +54,7 @@ function MapPage({ onLogout, onShowLogin, isLoggedIn }) {
           ) : (
             <>
               <span>게스트 모드</span>
-              <button 
+              <button
                 onClick={onShowLogin}
                 style={{
                   marginLeft: '10px',
@@ -77,7 +77,7 @@ function MapPage({ onLogout, onShowLogin, isLoggedIn }) {
       <div style={{ display: 'flex', height: 'calc(100vh - 70px)' }}>
         {/* 맵 영역 */}
         <div style={{ flex: 1 }}>
-          <Map 
+          <Map
             onStoriesUpdate={handleStoriesUpdate}
             onStoryCreate={handleStoryCreate}
             isLoggedIn={isLoggedIn}
@@ -96,8 +96,8 @@ function MapPage({ onLogout, onShowLogin, isLoggedIn }) {
             <p>이 지역에 스토리가 없습니다.</p>
           ) : (
             stories.map(story => (
-              <StoryCard 
-                key={story.story_id} 
+              <StoryCard
+                key={story.story_id}
                 story={story}
                 currentUser={currentUser}
               />
