@@ -191,11 +191,15 @@ Response: {
 ```
 POST /tags/story/456
 Request: { 
-  "user_id": 123,
   "tag_name": "카페" 
 }
 Response: { "success": true }
 ```
+
+**동작 방식:**
+- 태그가 이미 존재하면: 해당 tag_id를 스토리에 연결
+- 태그가 없으면: 새로 생성 후 스토리에 연결
+- 중복 추가 방지: 같은 태그는 한 번만 추가됨
 
 ### 스토리별 태그 목록
 ```
@@ -246,6 +250,15 @@ const createComment = async (reviewId, content) => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_id: userId, review_id: reviewId, content })
+  });
+};
+
+// 태그
+const addTagToStory = async (storyId, tagName) => {
+  return fetch(`/tags/story/${storyId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tag_name: tagName })
   });
 };
 ```
