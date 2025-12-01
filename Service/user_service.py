@@ -21,6 +21,22 @@ class UserService:
         finally:
             cursor.close()
     
+    # 새 사용자 생성하고 user_id 반환
+    def create_user_and_return_id(self, user_data: dict):
+        cursor = self.db.get_cursor()
+        try:
+            sql = "INSERT INTO USER_T (user_id, id, password, name, email) VALUES (USER_SEQ.NEXTVAL, :1, :2, :3, :4) RETURNING user_id INTO :5"
+            user_id_var = cursor.var(int)
+            cursor.execute(sql, (user_data['id'], user_data['password'], 
+                               user_data['name'], user_data['email'], user_id_var))
+            self.db.connection.commit()
+            return user_id_var.getvalue()[0]
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            return None
+        finally:
+            cursor.close()
+    
     # 사용자 ID로 사용자 조회
     def get_user_by_id(self, user_id: int):
         cursor = self.db.get_cursor()

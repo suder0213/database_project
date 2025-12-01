@@ -1,22 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 from Service.place_service import PlaceService
+from Enitity.Place import PlaceCreateDto, PlaceUpdateDto
 
 router = APIRouter(prefix="/places", tags=["places"])
 place_service = PlaceService()
 
-class PlaceCreate(BaseModel):
-    name: str
-    latitude: float
-    longitude: float
-
-class PlaceUpdate(BaseModel):
-    name: str
-    latitude: float
-    longitude: float
-
 @router.post("")
-def create_place(place_data: PlaceCreate):
+def create_place(place_data: PlaceCreateDto):
     result = place_service.create_place(place_data.model_dump())
     if result:
         return {"message": "Place created successfully"}
@@ -39,7 +29,7 @@ def search_places_by_location(
     return [place.__dict__ for place in places]
 
 @router.put("/{place_id}")
-def update_place_info(place_id: int, place_data: PlaceUpdate):
+def update_place_info(place_id: int, place_data: PlaceUpdateDto):
     result = place_service.update_place(place_id, place_data.model_dump())
     if result:
         return {"message": "Place updated successfully"}

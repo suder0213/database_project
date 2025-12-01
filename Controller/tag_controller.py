@@ -1,18 +1,12 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 from Service.tag_service import TagService
+from Enitity.Tag import TagCreateDto, StoryTagAddDto
 
 router = APIRouter(prefix="/tags", tags=["tags"])
 tag_service = TagService()
 
-class TagCreate(BaseModel):
-    name: str
-
-class StoryTagAdd(BaseModel):
-    tag_id: int
-
 @router.post("")
-def create_tag(tag_data: TagCreate):
+def create_tag(tag_data: TagCreateDto):
     result = tag_service.create_tag(tag_data.model_dump())
     if result:
         return {"message": "Tag created successfully"}
@@ -31,7 +25,7 @@ def get_tag_details(tag_id: int):
     raise HTTPException(status_code=404, detail="Tag not found")
 
 @router.post("/story/{story_id}")
-def add_story_tag(story_id: int, tag_data: StoryTagAdd):
+def add_story_tag(story_id: int, tag_data: StoryTagAddDto):
     result = tag_service.add_story_tag(story_id, tag_data.tag_id)
     if result:
         return {"message": "Tag added to story successfully"}
