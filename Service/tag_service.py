@@ -106,3 +106,68 @@ class TagService:
             return []
         finally:
             cursor.close()
+    
+    # 모든 태그 목록 (프론트엔드 응답 형식)
+    def get_all_tags_for_frontend(self):
+        tags = self.get_all_tags()
+        
+        tags_data = []
+        for tag in tags:
+            tags_data.append({
+                "tag_id": tag.tag_id,
+                "name": tag.name
+            })
+        
+        return {"tags": tags_data}
+    
+    # 스토리별 태그 목록 (프론트엔드 응답 형식)
+    def get_story_tags_for_frontend(self, story_id: int):
+        tags = self.get_story_tags(story_id)
+        
+        tags_data = []
+        for tag in tags:
+            tags_data.append({
+                "tag_id": tag.tag_id,
+                "name": tag.name
+            })
+        
+        return {"tags": tags_data}
+    
+    # 태그명으로 스토리에 태그 추가
+    # 1. 태그가 존재하면 해당 tag_id 사용
+    # 2. 태그가 없으면 새로 생성 후 사용
+    def add_tag_to_story_by_name(self, story_id: int, tag_name: str):
+        cursor = self.db.get_cursor()
+        try:
+            # 1단계: 태그 존재 여부 확인
+            sql = "SELECT tag_id FROM TAG WHERE name = :1"
+            cursor.execute(sql, (tag_name,))
+            row = cursor.fetchone()
+            
+            if row:
+                # 기존 태그 사용
+                tag_id = row[0]
+            else:
+                # 새 태그 생성
+                sql = "INSERT INTO TAG (tag_id, name) VALUES (TAG_SEQ.NEXTVAL, :1) RETURNING tag_id INTO :2"
+                tag_id_var = cursor.var(int)
+                cursor.execute(sql, (tag_name, tag_id_var))
+                tag_id = tag_id_var.getvalue()[0]
+            
+            # 2단계: 스토리에 태그 연결 (중복 방지)
+            try:
+                sql = "INSERT INTO STORY_TAG (story_id, tag_id) VALUES (:1, :2)"
+                cursor.execute(sql, (story_id, tag_id))
+                self.db.connection.commit()
+                return True
+            except Exception:
+                # 이미 연결된 경우 (중복 키 에러) - 성공으로 처리
+                self.db.connection.commit()  # 태그 생성은 커밋
+                return True
+                
+        except Exception as e:
+            print(f"Error adding tag to story: {e}")
+            self.db.connection.rollback()
+            return False
+        finally:
+            cursor.close()
