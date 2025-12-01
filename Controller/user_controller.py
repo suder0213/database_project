@@ -7,9 +7,9 @@ user_service = UserService()
 
 @router.post("/register")
 def register_user(user_data: UserCreateDto):
-    result = user_service.create_user(user_data.model_dump())
-    if result:
-        return {"message": "User registered successfully"}
+    user_id = user_service.create_user_and_return_id(user_data.model_dump())
+    if user_id:
+        return {"success": True, "user_id": user_id}
     raise HTTPException(status_code=400, detail="Failed to register user")
 
 @router.post("/login")
