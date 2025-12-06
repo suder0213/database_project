@@ -1,87 +1,146 @@
 from database import db_connection
 from Enitity.Like_t import Like_t
-from datetime import datetime
+import cx_Oracle
 
 class LikeService:
     def __init__(self):
         self.db = db_connection
-    
-    # 좋아요 토글 (추가/제거)
+
+    def _get_value(self, val):
+        if isinstance(val, cx_Oracle.LOB):
+            return val.read()
+        return val
+
+    # 1. 좋아요 토글 (수정됨: like_id 제거)
     def toggle_like(self, user_id: int, story_id: int):
         cursor = self.db.get_cursor()
         try:
-            # 좋아요가 이미 있는지 확인
-            check_sql = "SELECT COUNT(*) FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
+            # 1) 이미 좋아요가 있는지 확인 (user_id와 story_id로 식별)
+            check_sql = "SELECT 1 FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
             cursor.execute(check_sql, (user_id, story_id))
-            exists = cursor.fetchone()[0] > 0
-            
-            if exists:
-                # 좋아요 제거
-                sql = "DELETE FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
-                cursor.execute(sql, (user_id, story_id))
+            row = cursor.fetchone()
+
+            if row:
+                # 이미 있음 -> 삭제 (좋아요 취소)
+                del_sql = "DELETE FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
+                cursor.execute(del_sql, (user_id, story_id))
+                liked = False
             else:
-                # 좋아요 추가
-                sql = "INSERT INTO LIKE_T (user_id, story_id) VALUES (:1, :2)"
-                cursor.execute(sql, (user_id, story_id))
+                # 없음 -> 추가 (좋아요)
+                # like_id 컬럼과 LIKE_SEQ 시퀀스를 제거하고 insert
+                ins_sql = "INSERT INTO LIKE_T (user_id, story_id, created_at) VALUES (:1, :2, SYSDATE)"
+                cursor.execute(ins_sql, (user_id, story_id))
+                liked = True
             
+            # 2) STORY 테이블의 likes 카운트 업데이트
+            update_sql = """
+                UPDATE STORY SET likes = (
+                    SELECT COUNT(*) FROM LIKE_T WHERE story_id = :1
+                ) WHERE story_id = :1
+            """
+            cursor.execute(update_sql, (story_id,))
+            
+            # 3) 업데이트된 총 좋아요 수 가져오기
+            count_sql = "SELECT likes FROM STORY WHERE story_id = :1"
+            cursor.execute(count_sql, (story_id,))
+            total_likes = cursor.fetchone()[0]
+
             self.db.connection.commit()
-            return not exists  # 추가되었으면 True, 제거되었으면 False
+            
+            return {
+                "liked": liked, 
+                "total_likes": total_likes
+            }
+
         except Exception as e:
             print(f"Error toggling like: {e}")
+            self.db.connection.rollback()
+            return None
+        finally:
+            cursor.close()
+
+    # 2. 좋아요 상태 확인
+    def check_like_status(self, user_id: int, story_id: int):
+        cursor = self.db.get_cursor()
+        try:
+            sql = "SELECT 1 FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
+            cursor.execute(sql, (user_id, story_id))
+            return cursor.fetchone() is not None
+        except Exception as e:
+            print(f"Error checking like status: {e}")
             return False
         finally:
             cursor.close()
-    
-    # 스토리의 좋아요 목록 조회
-    def get_story_likes(self, story_id: int):
+
+    # 3. 스토리별 좋아요 목록 (수정됨: like_id 조회 제거)
+    def get_likes_by_story(self, story_id: int):
         cursor = self.db.get_cursor()
         try:
-            sql = "SELECT user_id, story_id, created_at FROM LIKE_T WHERE story_id = :1"
+            # like_id 컬럼이 없으므로 조회에서 제외
+            sql = """
+                SELECT l.user_id, l.created_at, u.name
+                FROM LIKE_T l
+                JOIN USER_T u ON l.user_id = u.user_id
+                WHERE l.story_id = :1
+                ORDER BY l.created_at DESC
+            """
             cursor.execute(sql, (story_id,))
             rows = cursor.fetchall()
-            return [Like_t(*row) for row in rows]
+            
+            likes = []
+            for row in rows:
+                likes.append(Like_t(
+                    like_id=None, # ID 없음
+                    user_id=row[0], 
+                    created_at=row[1], 
+                    user_name=row[2]
+                ))
+            return likes
         except Exception as e:
             print(f"Error getting story likes: {e}")
             return []
         finally:
             cursor.close()
-    
-    # 사용자의 좋아요 목록 조회
-    def get_user_likes(self, user_id: int):
+
+    # 4. 사용자별 좋아요 목록 (수정됨: like_id 조회 제거)
+    def get_likes_by_user(self, user_id: int):
         cursor = self.db.get_cursor()
         try:
-            sql = "SELECT user_id, story_id, created_at FROM LIKE_T WHERE user_id = :1"
+            # like_id 컬럼 제외
+            sql = """
+                SELECT l.story_id, l.created_at, s.content
+                FROM LIKE_T l
+                JOIN STORY s ON l.story_id = s.story_id
+                WHERE l.user_id = :1
+                ORDER BY l.created_at DESC
+            """
             cursor.execute(sql, (user_id,))
             rows = cursor.fetchall()
-            return [Like_t(*row) for row in rows]
+            
+            likes = []
+            for row in rows:
+                likes.append(Like_t(
+                    like_id=None, # ID 없음
+                    story_id=row[0], 
+                    created_at=row[1], 
+                    story_content=self._get_value(row[2])
+                ))
+            return likes
         except Exception as e:
             print(f"Error getting user likes: {e}")
             return []
         finally:
             cursor.close()
-    
-    # 스토리의 좋아요 수 조회
-    def get_likes_count(self, story_id: int):
+
+    # 5. 스토리 좋아요 수 조회
+    def get_like_count(self, story_id: int):
         cursor = self.db.get_cursor()
         try:
             sql = "SELECT COUNT(*) FROM LIKE_T WHERE story_id = :1"
             cursor.execute(sql, (story_id,))
             return cursor.fetchone()[0]
         except Exception as e:
-            print(f"Error getting likes count: {e}")
+            print(f"Error counting likes: {e}")
             return 0
-        finally:
-            cursor.close()
-    
-    # 사용자가 스토리에 좋아요를 눌렀는지 확인
-    def is_liked_by_user(self, user_id: int, story_id: int):
-        cursor = self.db.get_cursor()
-        try:
-            sql = "SELECT COUNT(*) FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
-            cursor.execute(sql, (user_id, story_id))
-            return cursor.fetchone()[0] > 0
-        except Exception as e:
-            print(f"Error checking if liked: {e}")
-            return False
         finally:
             cursor.close()
