@@ -1,76 +1,136 @@
 from database import db_connection
-from Enitity.Comment_t import Comment_t
+from Enitity.Comment_t.comment_t import Comment_t
 from datetime import datetime
+import cx_Oracle
 
 class CommentService:
     def __init__(self):
         self.db = db_connection
-    
-    # 새 댓글 생성
+
+    # LOB 데이터 처리 헬퍼 (필수)
+    def _get_value(self, val):
+        if isinstance(val, cx_Oracle.LOB):
+            return val.read()
+        return val
+
+    # 1. 댓글 작성
     def create_comment(self, comment_data: dict):
         cursor = self.db.get_cursor()
         try:
-            sql = "INSERT INTO COMMENT_T (comment_id, user_id, review_id, content) VALUES (COMMENT_SEQ.NEXTVAL, :1, :2, :3)"
-            cursor.execute(sql, (comment_data['user_id'], comment_data['review_id'], 
-                               comment_data['content']))
+            sql = """
+                INSERT INTO COMMENT_T (comment_id, user_id, review_id, content, created_at) 
+                VALUES (COMMENT_SEQ.NEXTVAL, :1, :2, :3, SYSDATE)
+                RETURNING comment_id INTO :4
+            """
+            comment_id_var = cursor.var(int)
+            cursor.execute(sql, (
+                comment_data['user_id'],
+                comment_data['review_id'],
+                comment_data['content'],
+                comment_id_var
+            ))
             self.db.connection.commit()
-            return True
+            return comment_id_var.getvalue()[0]
         except Exception as e:
             print(f"Error creating comment: {e}")
-            return False
+            return None
         finally:
             cursor.close()
-    
-    # 댓글 ID로 댓글 조회
+
+    # 2. 댓글 단건 조회
     def get_comment_by_id(self, comment_id: int):
         cursor = self.db.get_cursor()
         try:
-            sql = "SELECT comment_id, user_id, review_id, content, created_at FROM COMMENT_T WHERE comment_id = :1"
+            # 명세서: user_name 필요
+            sql = """
+                SELECT c.comment_id, c.review_id, c.content, c.created_at, u.name
+                FROM COMMENT_T c
+                JOIN USER_T u ON c.user_id = u.user_id
+                WHERE c.comment_id = :1
+            """
             cursor.execute(sql, (comment_id,))
             row = cursor.fetchone()
+            
             if row:
-                return Comment_t(*row)
+                return Comment_t(
+                    comment_id=row[0],
+                    review_id=row[1],
+                    content=self._get_value(row[2]), # LOB 처리
+                    created_at=row[3],
+                    user_name=row[4]
+                )
             return None
         except Exception as e:
             print(f"Error getting comment: {e}")
             return None
         finally:
             cursor.close()
-    
-    # 리뷰별 댓글 목록 조회
+
+    # 3. 리뷰별 댓글 목록 조회
     def get_comments_by_review(self, review_id: int):
         cursor = self.db.get_cursor()
         try:
-            sql = "SELECT comment_id, user_id, review_id, content, created_at FROM COMMENT_T WHERE review_id = :1"
+            sql = """
+                SELECT c.comment_id, c.content, c.created_at, u.name
+                FROM COMMENT_T c
+                JOIN USER_T u ON c.user_id = u.user_id
+                WHERE c.review_id = :1
+                ORDER BY c.created_at ASC
+            """
             cursor.execute(sql, (review_id,))
             rows = cursor.fetchall()
-            return [Comment_t(*row) for row in rows]
+            
+            comments = []
+            for row in rows:
+                comments.append(Comment_t(
+                    comment_id=row[0],
+                    content=self._get_value(row[1]),
+                    created_at=row[2],
+                    user_name=row[3]
+                ))
+            return comments
         except Exception as e:
-            print(f"Error getting comments by review: {e}")
+            print(f"Error getting review comments: {e}")
             return []
         finally:
             cursor.close()
-    
-    # 사용자별 댓글 목록 조회
+
+    # 4. 사용자별 댓글 목록 조회 (리뷰 제목 포함)
     def get_comments_by_user(self, user_id: int):
         cursor = self.db.get_cursor()
         try:
-            sql = "SELECT comment_id, user_id, review_id, content, created_at FROM COMMENT_T WHERE user_id = :1"
+            # REVIEW 테이블과 조인하여 review_title(r.title) 가져오기
+            sql = """
+                SELECT c.comment_id, c.content, c.created_at, r.title
+                FROM COMMENT_T c
+                JOIN REVIEW r ON c.review_id = r.review_id
+                WHERE c.user_id = :1
+                ORDER BY c.created_at DESC
+            """
             cursor.execute(sql, (user_id,))
             rows = cursor.fetchall()
-            return [Comment_t(*row) for row in rows]
+            
+            comments = []
+            for row in rows:
+                comments.append(Comment_t(
+                    comment_id=row[0],
+                    content=self._get_value(row[1]),
+                    created_at=row[2],
+                    review_title=self._get_value(row[3]) # 제목도 LOB일 수 있으므로 처리
+                ))
+            return comments
         except Exception as e:
-            print(f"Error getting comments by user: {e}")
+            print(f"Error getting user comments: {e}")
             return []
         finally:
             cursor.close()
-    
-    # 댓글 내용 수정
-    def update_comment(self, comment_id: int, comment_data: dict):
+
+    # 5. 댓글 수정
+    def update_comment(self, comment_id: int, content: str):
         cursor = self.db.get_cursor()
         try:
             sql = "UPDATE COMMENT_T SET content = :1 WHERE comment_id = :2"
-            cursor.execute(sql, (comment_data['content'], comment_id))
+            cursor.execute(sql, (content, comment_id))
             self.db.connection.commit()
             return cursor.rowcount > 0
         except Exception as e:
@@ -78,8 +138,8 @@ class CommentService:
             return False
         finally:
             cursor.close()
-    
-    # 댓글 삭제
+
+    # 6. 댓글 삭제
     def delete_comment(self, comment_id: int):
         cursor = self.db.get_cursor()
         try:
