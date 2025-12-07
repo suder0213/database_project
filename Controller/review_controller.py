@@ -41,6 +41,7 @@ def get_place_reviews(place_id: int):
                 "title": r.title,
                 "content": r.content,
                 "rating": r.rating,
+                "user_id": r.user_id,
                 "user_name": r.user_name,
                 "created_at": r.created_at
             } for r in reviews
@@ -58,6 +59,7 @@ def get_user_reviews(user_id: int):
                 "title": r.title,
                 "content": r.content,
                 "rating": r.rating,
+                "place_id": r.place_id,
                 "place_name": r.place_name,
                 "latitude": r.latitude,
                 "longitude": r.longitude,

@@ -1,48 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { storyAPI } from '../services/api';
-import { getUserId } from '../utils/auth';
+import { likeAPI } from '../services/api';
 
-function MyStories({ onClose }) {
-  const [stories, setStories] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+function MyLikes({ onClose }) {
+  const [likes, setLikes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
-    loadMyStories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadLikes();
   }, []);
 
-  const loadMyStories = async () => {
+  const loadLikes = async () => {
     try {
-      const userId = getUserId();
-      if (userId) {
-        const response = await fetch(`/stories/user/${userId}`);
-        const data = await response.json();
-        setStories(data.stories || []);
-      }
+      const response = await likeAPI.getUserLikes(userId);
+      setLikes(response.liked_stories || []);
     } catch (error) {
-      console.error('Failed to load stories:', error);
-      setError('스토리를 불러오는데 실패했습니다.');
+      console.error('좋아요 목록 로드 실패:', error);
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteStory = async (storyId) => {
-    if (window.confirm('정말로 이 스토리를 삭제하시겠습니까?')) {
-      try {
-        await fetch(`/stories/${storyId}`, { method: 'DELETE' });
-        setStories(stories.filter(story => story.story_id !== storyId));
-      } catch (error) {
-        console.error('Delete error:', error);
-      }
-    }
-  };
-
-  const handleStoryClick = (story) => {
-    if (story.latitude && story.longitude) {
-      window.moveMapToLocation?.(story.latitude, story.longitude);
-      onClose();
+      setLoading(false);
     }
   };
 
@@ -73,7 +48,7 @@ function MyStories({ onClose }) {
         animation: 'modalFadeIn 0.2s ease-out'
       }} onClick={onClose}>
       <div style={{
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 255, 245, 0.95) 100%)',
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 240, 245, 0.95) 100%)',
         borderRadius: '24px',
         width: '90%',
         maxWidth: '600px',
@@ -88,7 +63,7 @@ function MyStories({ onClose }) {
         
         {/* 헤더 */}
         <div style={{
-          background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+          background: 'linear-gradient(135deg, #ff6b9d 0%, #c06c84 100%)',
           padding: '24px',
           borderBottom: '2px solid rgba(255, 255, 255, 0.3)',
           position: 'relative'
@@ -108,13 +83,13 @@ function MyStories({ onClose }) {
               justifyContent: 'center',
               fontSize: '24px',
               backdropFilter: 'blur(10px)'
-            }}>📖</div>
+            }}>❤️</div>
             <div>
               <h2 style={{ margin: 0, color: 'white', fontSize: '24px', fontWeight: '700' }}>
-                내가 쓴 스토리
+                좋아요한 스토리
               </h2>
               <p style={{ margin: '4px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '14px' }}>
-                {stories.length}개의 스토리
+                {likes.length}개의 스토리
               </p>
             </div>
           </div>
@@ -153,55 +128,41 @@ function MyStories({ onClose }) {
           willChange: 'scroll-position',
           transform: 'translateZ(0)'
         }}>
-          {error && (
-            <div style={{
-              color: '#dc3545',
-              marginBottom: '15px',
-              padding: '12px',
-              background: 'rgba(220, 53, 69, 0.1)',
-              borderRadius: '12px',
-              border: '1px solid rgba(220, 53, 69, 0.2)'
-            }}>
-              {error}
-            </div>
-          )}
-
-          {isLoading ? (
+          {loading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
               로딩 중...
             </div>
-          ) : stories.length === 0 ? (
+          ) : likes.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '60px 20px',
               color: '#999'
             }}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>📝</div>
-              <p style={{ fontSize: '16px', margin: 0 }}>아직 작성한 스토리가 없습니다</p>
+              <div style={{ fontSize: '64px', marginBottom: '16px' }}>💔</div>
+              <p style={{ fontSize: '16px', margin: 0 }}>아직 좋아요한 스토리가 없습니다</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {stories.map((story) => (
-                <div key={story.story_id} style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 255, 245, 0.9) 100%)',
+              {likes.map((like, index) => (
+                <div key={index} style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 240, 245, 0.9) 100%)',
                   borderRadius: '16px',
                   padding: '20px',
-                  border: '2px solid rgba(40, 167, 69, 0.2)',
-                  boxShadow: '0 4px 15px rgba(40, 167, 69, 0.1)',
+                  border: '2px solid rgba(255, 107, 157, 0.2)',
+                  boxShadow: '0 4px 15px rgba(255, 107, 157, 0.1)',
                   transition: 'all 0.3s ease',
                   cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(40, 167, 69, 0.2)';
-                  e.currentTarget.style.borderColor = 'rgba(40, 167, 69, 0.4)';
+                  e.currentTarget.style.boxShadow = '0 8px 25px rgba(255, 107, 157, 0.2)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 107, 157, 0.4)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(40, 167, 69, 0.2)';
-                }}
-                onClick={() => handleStoryClick(story)}>
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 107, 157, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 107, 157, 0.2)';
+                }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -210,15 +171,15 @@ function MyStories({ onClose }) {
                     <div style={{
                       width: '48px',
                       height: '48px',
-                      background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                      background: 'linear-gradient(135deg, #ff6b9d 0%, #c06c84 100%)',
                       borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '24px',
                       flexShrink: 0,
-                      boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)'
-                    }}>📖</div>
+                      boxShadow: '0 4px 12px rgba(255, 107, 157, 0.3)'
+                    }}>❤️</div>
                     <div style={{ flex: 1 }}>
                       <div style={{
                         fontSize: '16px',
@@ -228,48 +189,20 @@ function MyStories({ onClose }) {
                         lineHeight: '1.5',
                         wordBreak: 'break-word'
                       }}>
-                        {story.content}
+                        {like.content || like.story_content || '내용 없음'}
                       </div>
                       <div style={{
                         fontSize: '13px',
                         color: '#999',
                         display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px'
+                        alignItems: 'center',
+                        gap: '8px'
                       }}>
-                        <span>❤️ 좋아요 {story.likes || 0}개</span>
-                        <span>📅 {new Date(story.created_at).toLocaleDateString('ko-KR')}</span>
-                        <span>📍 {story.latitude?.toFixed(4)}, {story.longitude?.toFixed(4)}</span>
+                        <span>📅 {new Date(like.created_at).toLocaleDateString('ko-KR')}</span>
+                        <span>•</span>
+                        <span>Story #{like.story_id}</span>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteStory(story.story_id);
-                      }}
-                      style={{
-                        background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '8px 16px',
-                        cursor: 'pointer',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        transition: 'all 0.2s',
-                        flexShrink: 0
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.05)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.4)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                    >
-                      🗑️ 삭제
-                    </button>
                   </div>
                 </div>
               ))}
@@ -282,4 +215,4 @@ function MyStories({ onClose }) {
   );
 }
 
-export default MyStories;
+export default MyLikes;

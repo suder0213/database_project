@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { storyAPI, placeAPI, reviewAPI } from '../services/api';
+import { storyAPI, placeAPI, reviewAPI, likeAPI } from '../services/api';
 
 function Map({ user }) {
   const mapRef = useRef(null);
@@ -131,97 +131,190 @@ function Map({ user }) {
         const likes = story.likes || 0;
         const createdAt = story.created_at ? new Date(story.created_at).toLocaleDateString() : '';
 
-        return `
+        const overlayDiv = document.createElement('div');
+        overlayDiv.style.cssText = `
+          position: relative;
+          width: 270px;
+          height: 480px;
+          background: white;
+          border-radius: 20px;
+          border: 3px solid #667eea;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          overflow: hidden;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          cursor: pointer;
+          user-select: none;
+          touch-action: manipulation;
+        `;
+        
+        overlayDiv.innerHTML = `
           <div style="
+            height: 100%;
             position: relative;
-            width: 270px;
-            height: 480px;
-            background: white;
-            border-radius: 20px;
-            border: 3px solid #667eea;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
           ">
-            <div style="
-              height: 100%;
-              position: relative;
-              overflow: hidden;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 80px;
-            ">
-              ${imageUrl ? `<img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;" />` : '📸'}
-              <div style="
-                position: absolute;
-                top: 20px;
-                left: 20px;
-                right: 20px;
-                display: flex;
-                align-items: center;
-                z-index: 2;
-              ">
-                <div style="
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 50%;
-                  background: white;
-                  margin-right: 10px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-weight: bold;
-                  color: #667eea;
-                  font-size: 16px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                ">${userName.charAt(0).toUpperCase()}</div>
-                <div style="
-                  color: white;
-                  font-weight: 600;
-                  font-size: 15px;
-                  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
-                ">${userName}</div>
-              </div>
-              
-              <div style="
-                position: absolute;
-                bottom: 20px;
-                left: 20px;
-                right: 20px;
-                color: white;
-                text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-              ">
-                <div style="
-                  font-size: 14px;
-                  line-height: 1.4;
-                  margin-bottom: 12px;
-                ">${content}</div>
-                <div style="
-                  display: flex;
-                  align-items: center;
-                  justify-content: space-between;
-                  font-size: 14px;
-                ">
-                  <span>❤️ ${likes}</span>
-                  <span style="font-size: 12px;">${createdAt}</span>
-                </div>
-              </div>
-            </div>
+            ${imageUrl ? `<img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;" />` : '📸'}
             <div style="
               position: absolute;
-              top: -10px;
+              top: 20px;
+              left: 20px;
+              right: 20px;
+              display: flex;
+              align-items: center;
+              z-index: 2;
+            ">
+              <div style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: white;
+                margin-right: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                color: #667eea;
+                font-size: 16px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+              ">${userName.charAt(0).toUpperCase()}</div>
+              <div style="
+                color: white;
+                font-weight: 600;
+                font-size: 15px;
+                text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+              ">${userName}</div>
+            </div>
+            
+            <div style="
+              position: absolute;
+              bottom: 20px;
+              left: 20px;
+              right: 20px;
+              color: white;
+              text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            ">
+              <div style="
+                font-size: 14px;
+                line-height: 1.4;
+                margin-bottom: 12px;
+              ">${content}</div>
+              <div style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                font-size: 14px;
+              ">
+                <span id="like-count-${story.story_id}">❤️ ${likes}</span>
+                <span style="font-size: 12px;">${createdAt}</span>
+              </div>
+            </div>
+            <div id="like-animation-${story.story_id}" style="
+              position: absolute;
+              top: 50%;
               left: 50%;
-              transform: translateX(-50%);
-              width: 0;
-              height: 0;
-              border-left: 10px solid transparent;
-              border-right: 10px solid transparent;
-              border-bottom: 10px solid white;
-            "></div>
+              transform: translate(-50%, -50%);
+              font-size: 80px;
+              opacity: 0;
+              pointer-events: none;
+              z-index: 10;
+            ">❤️</div>
           </div>
+          <div style="
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 10px solid white;
+          "></div>
         `;
+        
+        // 더블클릭 좋아요 기능
+        overlayDiv.addEventListener('dblclick', async function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // 테스트 마커는 좋아요 기능 비활성화
+          if (story.story_id === 999) {
+            console.log('테스트 마커는 좋아요를 지원하지 않습니다.');
+            return;
+          }
+          
+          const userId = localStorage.getItem('user_id');
+          if (!userId) {
+            alert('로그인이 필요합니다.');
+            return;
+          }
+          
+          try {
+            console.log('좋아요 요청:', { story_id: story.story_id, user_id: userId });
+            const response = await likeAPI.toggleLike(story.story_id);
+            console.log('좋아요 응답:', response);
+            
+            if (response.success) {
+              // 좋아요 수 업데이트
+              const likeCountEl = document.getElementById(`like-count-${story.story_id}`);
+              if (likeCountEl) {
+                likeCountEl.textContent = `❤️ ${response.total_likes}`;
+              }
+              
+              // 하트 애니메이션 (좋아요/취소에 따라 다른 애니메이션)
+              const heartAnim = document.getElementById(`like-animation-${story.story_id}`);
+              if (heartAnim) {
+                if (response.liked) {
+                  // 좋아요 추가: 하트 터지기
+                  heartAnim.textContent = '❤️';
+                  heartAnim.style.animation = 'heartBurst 0.6s ease-out';
+                } else {
+                  // 좋아요 취소: 깨진 하트
+                  heartAnim.textContent = '💔';
+                  heartAnim.style.animation = 'heartBreak 0.6s ease-out';
+                }
+                heartAnim.style.opacity = '1';
+                setTimeout(() => {
+                  heartAnim.style.opacity = '0';
+                  heartAnim.style.animation = '';
+                }, 600);
+              }
+            }
+          } catch (error) {
+            console.error('좋아요 실패:', error);
+            console.error('에러 상세:', error.response?.data);
+            console.error('에러 상태:', error.response?.status);
+            alert('좋아요 처리에 실패했습니다: ' + (error.response?.data?.detail || error.message));
+          }
+        });
+        
+        // 애니메이션 CSS 추가
+        if (!document.getElementById('heart-animation-style')) {
+          const style = document.createElement('style');
+          style.id = 'heart-animation-style';
+          style.textContent = `
+            @keyframes heartBurst {
+              0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+              50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+              100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+            }
+            @keyframes heartBreak {
+              0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+              25% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); opacity: 1; }
+              50% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 0.8; }
+              75% { transform: translate(-50%, -50%) scale(0.9) rotate(-5deg); opacity: 0.5; }
+              100% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 0; }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+        
+        return overlayDiv;
       };
 
       // 위치 기반 스토리 불러오기 (bounds 사용)

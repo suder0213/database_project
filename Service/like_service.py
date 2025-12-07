@@ -36,9 +36,9 @@ class LikeService:
             update_sql = """
                 UPDATE STORY SET likes = (
                     SELECT COUNT(*) FROM LIKE_T WHERE story_id = :1
-                ) WHERE story_id = :1
+                ) WHERE story_id = :2
             """
-            cursor.execute(update_sql, (story_id,))
+            cursor.execute(update_sql, (story_id, story_id))
             
             # 3) 업데이트된 총 좋아요 수 가져오기
             count_sql = "SELECT likes FROM STORY WHERE story_id = :1"

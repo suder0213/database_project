@@ -2,19 +2,21 @@ import React, { useState } from 'react';
 import UserProfile from './UserProfile';
 import MyStories from './MyStories';
 import MyReviews from './MyReviews';
+import MyLikes from './MyLikes';
 import { checkAuthStatus } from '../utils/auth';
 
 function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOpacity }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showMyStories, setShowMyStories] = useState(false);
   const [showMyReviews, setShowMyReviews] = useState(false);
+  const [showMyLikes, setShowMyLikes] = useState(false);
   const isLoggedIn = checkAuthStatus();
   return (
     <div style={{
       position: 'absolute',
       top: 0,
       left: 0,
-      width: '350px',
+      width: '400px',
       height: '100%',
       backgroundColor: 'white',
       borderRight: '3px solid transparent',
@@ -123,6 +125,21 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
             }}
           >
             ⭐ 내 리뷰/댓글
+          </button>
+          <button
+            onClick={() => setShowMyLikes(true)}
+            style={{
+              padding: '12px 16px',
+              backgroundColor: '#ff6b9d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            ❤️ 좋아요한 스토리
           </button>
         </div>
       )}
@@ -258,6 +275,9 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
       )}
       {showMyReviews && (
         <MyReviews onClose={() => setShowMyReviews(false)} />
+      )}
+      {showMyLikes && (
+        <MyLikes onClose={() => setShowMyLikes(false)} />
       )}
     </div>
   );

@@ -71,7 +71,7 @@ class CommentService:
         cursor = self.db.get_cursor()
         try:
             sql = """
-                SELECT c.comment_id, c.content, c.created_at, u.name
+                SELECT c.comment_id, c.content, c.created_at, c.user_id, u.name
                 FROM COMMENT_T c
                 JOIN USER_T u ON c.user_id = u.user_id
                 WHERE c.review_id = :1
@@ -86,7 +86,8 @@ class CommentService:
                     comment_id=row[0],
                     content=self._get_value(row[1]),
                     created_at=row[2],
-                    user_name=row[3]
+                    user_id=row[3],
+                    user_name=row[4]
                 ))
             return comments
         except Exception as e:
@@ -101,9 +102,11 @@ class CommentService:
         try:
             # REVIEW 테이블과 조인하여 review_title(r.title) 가져오기
             sql = """
-                SELECT c.comment_id, c.content, c.created_at, r.title
+                SELECT c.comment_id, c.content, c.created_at, r.title, c.review_id,
+                       r.place_id, p.name, p.latitude, p.longitude
                 FROM COMMENT_T c
                 JOIN REVIEW r ON c.review_id = r.review_id
+                LEFT JOIN PLACE p ON r.place_id = p.place_id
                 WHERE c.user_id = :1
                 ORDER BY c.created_at DESC
             """
@@ -116,7 +119,12 @@ class CommentService:
                     comment_id=row[0],
                     content=self._get_value(row[1]),
                     created_at=row[2],
-                    review_title=self._get_value(row[3]) # 제목도 LOB일 수 있으므로 처리
+                    review_title=self._get_value(row[3]),
+                    review_id=row[4],
+                    place_id=row[5],
+                    place_name=self._get_value(row[6]) if row[6] else None,
+                    latitude=row[7],
+                    longitude=row[8]
                 ))
             return comments
         except Exception as e:

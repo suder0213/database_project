@@ -92,7 +92,7 @@ class ReviewService:
         cursor = self.db.get_cursor()
         try:
             sql = """
-                SELECT r.review_id, r.title, r.content, r.rating, r.created_at, u.name
+                SELECT r.review_id, r.title, r.content, r.rating, r.created_at, r.user_id, u.name
                 FROM REVIEW r
                 JOIN USER_T u ON r.user_id = u.user_id
                 WHERE r.place_id = :1
@@ -107,7 +107,7 @@ class ReviewService:
                     review_id=row[0], 
                     title=self._get_value(row[1]), 
                     content=self._get_value(row[2]), 
-                    rating=row[3], created_at=row[4], user_name=row[5]
+                    rating=row[3], created_at=row[4], user_id=row[5], user_name=row[6]
                 ))
             return reviews
         except Exception as e:
@@ -121,7 +121,7 @@ class ReviewService:
         cursor = self.db.get_cursor()
         try:
             sql = """
-                SELECT r.review_id, r.title, r.content, r.rating, r.created_at, p.name, p.latitude, p.longitude
+                SELECT r.review_id, r.title, r.content, r.rating, r.created_at, r.place_id, p.name, p.latitude, p.longitude
                 FROM REVIEW r
                 JOIN PLACE p ON r.place_id = p.place_id
                 WHERE r.user_id = :1
@@ -136,8 +136,8 @@ class ReviewService:
                     review_id=row[0], 
                     title=self._get_value(row[1]), 
                     content=self._get_value(row[2]), 
-                    rating=row[3], created_at=row[4], place_name=row[5],
-                    latitude=row[6], longitude=row[7]
+                    rating=row[3], created_at=row[4], place_id=row[5], place_name=row[6],
+                    latitude=row[7], longitude=row[8]
                 ))
             return reviews
         except Exception as e:

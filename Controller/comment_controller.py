@@ -37,6 +37,7 @@ def get_review_comments(review_id: int):
             {
                 "comment_id": c.comment_id,
                 "content": c.content,
+                "user_id": c.user_id,
                 "user_name": c.user_name,
                 "created_at": c.created_at
             } for c in comments
@@ -52,7 +53,12 @@ def get_user_comments(user_id: int):
             {
                 "comment_id": c.comment_id,
                 "content": c.content,
+                "review_id": c.review_id,
                 "review_title": c.review_title,
+                "place_id": c.place_id,
+                "place_name": c.place_name,
+                "latitude": c.latitude,
+                "longitude": c.longitude,
                 "created_at": c.created_at
             } for c in comments
         ]
