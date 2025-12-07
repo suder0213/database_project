@@ -174,11 +174,12 @@ function MyReviews({ onClose }) {
         {/* 콘텐츠 */}
         <div style={{
           padding: '24px',
-          maxHeight: 'calc(80vh - 180px)',
+          maxHeight: 'calc(80vh - 200px)',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
           willChange: 'scroll-position',
-          transform: 'translateZ(0)'
+          transform: 'translateZ(0)',
+          paddingBottom: '32px'
         }}>
           {activeTab === 'reviews' ? (
             reviews.length === 0 ? (

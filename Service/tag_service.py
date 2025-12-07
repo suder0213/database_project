@@ -154,20 +154,25 @@ class TagService:
                 cursor.execute(sql, (tag_name, tag_id_var))
                 tag_id = tag_id_var.getvalue()[0]
             
-            # 2단계: 스토리에 태그 연결 (중복 방지)
-            try:
-                sql = "INSERT INTO STORY_TAG (story_id, tag_id) VALUES (:1, :2)"
-                cursor.execute(sql, (story_id, tag_id))
-                self.db.connection.commit()
-                return True
-            except Exception:
-                # 이미 연결된 경우 (중복 키 에러) - 성공으로 처리
+            # 2단계: 중복 체크
+            sql = "SELECT COUNT(*) FROM STORY_TAG WHERE story_id = :1 AND tag_id = :2"
+            cursor.execute(sql, (story_id, tag_id))
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                # 이미 연결된 태그
                 self.db.connection.commit()  # 태그 생성은 커밋
-                return True
+                return {"success": False, "message": "이미 추가된 태그입니다."}
+            
+            # 3단계: 스토리에 태그 연결
+            sql = "INSERT INTO STORY_TAG (story_id, tag_id) VALUES (:1, :2)"
+            cursor.execute(sql, (story_id, tag_id))
+            self.db.connection.commit()
+            return {"success": True, "message": "태그가 추가되었습니다."}
                 
         except Exception as e:
             print(f"Error adding tag to story: {e}")
             self.db.connection.rollback()
-            return False
+            return {"success": False, "message": "태그 추가에 실패했습니다."}
         finally:
             cursor.close()

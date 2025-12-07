@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { storyAPI } from '../services/api';
 import { getUserId } from '../utils/auth';
+import StoryModal from './StoryModal';
 
-function MyStories({ onClose }) {
+function MyStories({ onClose, onMoveToLocation }) {
   const [stories, setStories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -10,6 +11,7 @@ function MyStories({ onClose }) {
   const [editContent, setEditContent] = useState('');
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editImageFile, setEditImageFile] = useState(null);
+  const [selectedStory, setSelectedStory] = useState(null);
 
   useEffect(() => {
     loadMyStories();
@@ -93,10 +95,17 @@ function MyStories({ onClose }) {
     }
   };
 
-  const handleStoryClick = (story) => {
-    if (story.latitude && story.longitude) {
-      window.moveMapToLocation?.(story.latitude, story.longitude);
+  const handleStoryClick = async (story) => {
+    try {
+      const response = await storyAPI.getStoryById(story.story_id);
+      if (onMoveToLocation && response.latitude && response.longitude) {
+        onMoveToLocation(response.latitude, response.longitude);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
       onClose();
+      window.openStoryModal?.(response);
+    } catch (error) {
+      console.error('스토리 불러오기 실패:', error);
     }
   };
 
@@ -201,11 +210,12 @@ function MyStories({ onClose }) {
         {/* 콘텐츠 */}
         <div style={{
           padding: '24px',
-          maxHeight: 'calc(80vh - 120px)',
+          maxHeight: 'calc(80vh - 140px)',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
           willChange: 'scroll-position',
-          transform: 'translateZ(0)'
+          transform: 'translateZ(0)',
+          paddingBottom: '32px'
         }}>
           {error && (
             <div style={{
@@ -293,7 +303,6 @@ function MyStories({ onClose }) {
                       }}>
                         <span>❤️ 좋아요 {story.likes || 0}개</span>
                         <span>📅 {new Date(story.created_at).toLocaleDateString('ko-KR')}</span>
-                        <span>📍 {story.latitude?.toFixed(4)}, {story.longitude?.toFixed(4)}</span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -347,6 +356,13 @@ function MyStories({ onClose }) {
         </div>
       </div>
       </div>
+
+      {selectedStory && (
+        <StoryModal
+          story={selectedStory}
+          onClose={() => setSelectedStory(null)}
+        />
+      )}
 
       {/* 수정 모달 */}
       {editingStory && (

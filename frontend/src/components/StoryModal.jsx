@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { likeAPI } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { likeAPI, tagAPI } from '../services/api';
 
 function StoryModal({ story, onClose }) {
   const likes = story.likes || 0;
@@ -9,6 +9,34 @@ function StoryModal({ story, onClose }) {
   const createdAt = story.created_at ? new Date(story.created_at).toLocaleDateString() : '';
   const [showLikesList, setShowLikesList] = useState(false);
   const [likesList, setLikesList] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [allTags, setAllTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const userId = localStorage.getItem('user_id');
+
+  useEffect(() => {
+    loadTags();
+    loadAllTags();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const loadTags = async () => {
+    try {
+      const response = await tagAPI.getStoryTags(story.story_id);
+      setTags(response.tags || []);
+    } catch (error) {
+      console.error('태그 불러오기 실패:', error);
+    }
+  };
+
+  const loadAllTags = async () => {
+    try {
+      const response = await tagAPI.getAllTags();
+      setAllTags(response.tags || []);
+    } catch (error) {
+      console.error('전체 태그 불러오기 실패:', error);
+    }
+  };
 
   const handleShowLikes = async () => {
     if (showLikesList) {
@@ -22,6 +50,33 @@ function StoryModal({ story, onClose }) {
       setShowLikesList(true);
     } catch (error) {
       console.error('좋아요 목록 불러오기 실패:', error);
+    }
+  };
+
+  const handleAddTag = async (tagName) => {
+    try {
+      await tagAPI.addTagToStory(story.story_id, tagName);
+      loadTags();
+      setTagInput('');
+    } catch (error) {
+      console.error('태그 추가 실패:', error);
+      const errorMsg = error.response?.data?.detail || '태그 추가에 실패했습니다.';
+      alert(errorMsg);
+    }
+  };
+
+  const filteredTags = allTags.filter(t => 
+    !tags.some(st => st.tag_id === t.tag_id) &&
+    t.name.toLowerCase().includes(tagInput.toLowerCase())
+  );
+
+  const handleRemoveTag = async (tagId) => {
+    try {
+      await tagAPI.removeTagFromStory(story.story_id, tagId);
+      loadTags();
+    } catch (error) {
+      console.error('태그 삭제 실패:', error);
+      alert('태그 삭제에 실패했습니다.');
     }
   };
 
@@ -126,20 +181,120 @@ function StoryModal({ story, onClose }) {
             left: '10px',
             right: '10px',
             background: 'rgba(255, 255, 255, 0.9)',
-            padding: '12px',
+            padding: '8px',
             borderRadius: '12px',
             backdropFilter: 'blur(10px)',
             maxHeight: '250px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            overflowX: 'hidden'
           }}>
             <div style={{
               fontSize: '14px',
               lineHeight: '1.4',
-              marginBottom: '12px',
+              marginBottom: '4px',
               color: '#333',
               wordWrap: 'break-word',
               overflowWrap: 'break-word'
             }}>{content}</div>
+            
+            {/* 태그 */}
+            {tags.length > 0 && (
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '3px',
+                marginBottom: '2px'
+              }}>
+                {tags.map((tag) => (
+                  <span key={tag.tag_id} style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '3px 8px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    color: 'white',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: '600'
+                  }}>
+                    #{tag.name}
+                    {userId && (
+                      <button
+                        onClick={() => handleRemoveTag(tag.tag_id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'white',
+                          cursor: 'pointer',
+                          padding: 0,
+                          fontSize: '10px',
+                          lineHeight: 1
+                        }}
+                      >✕</button>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+            
+            {/* 태그 추가 */}
+            {userId && (
+              <div style={{ position: 'relative', marginTop: '2px', marginBottom: '4px', display: 'flex' }}>
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && tagInput.trim() && handleAddTag(tagInput.trim())}
+                  placeholder="태그 입력..."
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '6px 10px',
+                    border: '1px solid #667eea',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                
+                {tagInput && filteredTags.length > 0 && (
+                  <div style={{
+                    position: 'fixed',
+                    bottom: 'auto',
+                    top: 'auto',
+                    left: '22px',
+                    right: '22px',
+                    transform: 'translateY(-100%)',
+                    marginBottom: '4px',
+                    background: 'white',
+                    border: '2px solid #667eea',
+                    borderRadius: '8px',
+                    maxHeight: '120px',
+                    overflowY: 'auto',
+                    boxShadow: '0 -4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 10001
+                  }}>
+                    {filteredTags.map((tag) => (
+                      <div
+                        key={tag.tag_id}
+                        onClick={() => handleAddTag(tag.name)}
+                        style={{
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          borderBottom: '1px solid #f0f0f0'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#f5f5ff'}
+                        onMouseLeave={(e) => e.target.style.background = 'white'}
+                      >
+                        #{tag.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div style={{
               display: 'flex',
               alignItems: 'center',

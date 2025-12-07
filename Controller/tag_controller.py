@@ -15,9 +15,9 @@ def get_all_tags():
 @router.post("/story/{story_id}")
 def add_story_tag(story_id: int, tag_data: StoryTagCreateDto):
     result = tag_service.add_tag_to_story_by_name(story_id, tag_data.tag_name)
-    if result:
-        return {"success": True}
-    raise HTTPException(status_code=400, detail="Failed to add tag to story")
+    if result["success"]:
+        return result
+    raise HTTPException(status_code=400, detail=result["message"])
 
 @router.get("/story/{story_id}")
 def get_story_tags(story_id: int):

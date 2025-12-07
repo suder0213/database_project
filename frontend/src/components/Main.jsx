@@ -281,6 +281,7 @@ function Main() {
           setShowSidebar={setShowSidebar}
           sidebarOpacity={sidebarOpacity}
           setSidebarOpacity={setSidebarOpacity}
+          onMoveToLocation={(lat, lng) => window.moveMapToLocation?.(lat, lng)}
         />
 
         {/* 패널 토글 버튼 */}

@@ -1,16 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UserProfile from './UserProfile';
 import MyStories from './MyStories';
 import MyReviews from './MyReviews';
 import MyLikes from './MyLikes';
 import { checkAuthStatus } from '../utils/auth';
+import { tagAPI } from '../services/api';
 
-function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOpacity }) {
+function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOpacity, onMoveToLocation }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showMyStories, setShowMyStories] = useState(false);
   const [showMyReviews, setShowMyReviews] = useState(false);
   const [showMyLikes, setShowMyLikes] = useState(false);
+  const [allTags, setAllTags] = useState([]);
+  const [tagSearch, setTagSearch] = useState('');
   const isLoggedIn = checkAuthStatus();
+
+  useEffect(() => {
+    loadAllTags();
+  }, []);
+
+  const loadAllTags = async () => {
+    try {
+      const response = await tagAPI.getAllTags();
+      setAllTags(response.tags || []);
+    } catch (error) {
+      console.error('태그 불러오기 실패:', error);
+    }
+  };
+
+  const filteredTags = allTags.filter(tag =>
+    tag.name.toLowerCase().includes(tagSearch.toLowerCase())
+  );
   return (
     <div style={{
       position: 'absolute',
@@ -160,9 +180,66 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
           fontSize: '16px',
           fontWeight: '600',
           color: '#262626'
-        }}>🎆 인기 지역</h3>
-        <div style={{ fontSize: '14px', color: '#65676b' }}>
-          강남역, 명동, 홍대, 이태원
+        }}>🏷️ 태그 검색</h3>
+        <div style={{ position: 'relative' }}>
+          <input
+            value={tagSearch}
+            onChange={(e) => setTagSearch(e.target.value)}
+            placeholder="태그 검색..."
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              fontSize: '13px',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+          {tagSearch && filteredTags.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: '4px',
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              zIndex: 10
+            }}>
+              {filteredTags.map((tag) => (
+                <div
+                  key={tag.tag_id}
+                  onClick={async () => {
+                    try {
+                      const response = await tagAPI.getTagStories(tag.tag_id);
+                      console.log(`#${tag.name} 태그 전체 응답:`, response);
+                      console.log('story_ids:', response.story_ids);
+                      const count = response.story_ids?.length || 0;
+                      alert(`#${tag.name} 태그의 스토리 ${count}개 발견!`);
+                      setTagSearch('');
+                    } catch (error) {
+                      console.error('태그 스토리 검색 실패:', error);
+                    }
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    borderBottom: '1px solid #f0f0f0'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#f5f5ff'}
+                  onMouseLeave={(e) => e.target.style.background = 'white'}
+                >
+                  #{tag.name}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -271,13 +348,13 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
         <UserProfile onClose={() => setShowProfile(false)} />
       )}
       {showMyStories && (
-        <MyStories onClose={() => setShowMyStories(false)} />
+        <MyStories onClose={() => setShowMyStories(false)} onMoveToLocation={onMoveToLocation} />
       )}
       {showMyReviews && (
         <MyReviews onClose={() => setShowMyReviews(false)} />
       )}
       {showMyLikes && (
-        <MyLikes onClose={() => setShowMyLikes(false)} />
+        <MyLikes onClose={() => setShowMyLikes(false)} onMoveToLocation={onMoveToLocation} />
       )}
     </div>
   );

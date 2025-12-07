@@ -42,7 +42,49 @@ class StoryService:
         finally:
             cursor.close()
 
-    # 2. 내 스토리 조회
+    # 2. 스토리 ID로 조회
+    def get_story_by_id(self, story_id: int):
+        cursor = self.db.get_cursor()
+        try:
+            sql = """
+                SELECT s.story_id, s.user_id, s.content, s.image_url, s.latitude, s.longitude, s.likes, s.created_at, u.name
+                FROM STORY s
+                LEFT JOIN USER_T u ON s.user_id = u.user_id
+                WHERE s.story_id = :1
+            """
+            cursor.execute(sql, (story_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                story = Story(
+                    story_id=row[0], user_id=row[1], content=self._get_value(row[2]), image_url=row[3],
+                    latitude=row[4], longitude=row[5], likes=row[6], created_at=row[7],
+                    user_name=row[8] if row[8] else '삭제된 사용자'
+                )
+                # 이미지 URL 처리
+                image_url = story.image_url
+                if image_url and not image_url.startswith('http'):
+                    image_url = f"http://localhost:8000{image_url if image_url.startswith('/') else '/' + image_url}"
+                
+                return {
+                    "story_id": story.story_id,
+                    "user_id": story.user_id,
+                    "content": story.content,
+                    "latitude": story.latitude,
+                    "longitude": story.longitude,
+                    "image_url": image_url,
+                    "likes": story.likes,
+                    "user_name": story.user_name,
+                    "created_at": story.created_at.isoformat() if story.created_at else None
+                }
+            return None
+        except Exception as e:
+            print(f"Error getting story by id: {e}")
+            return None
+        finally:
+            cursor.close()
+
+    # 3. 내 스토리 조회
     def get_stories_by_user(self, user_id: int):
         cursor = self.db.get_cursor()
         try:
@@ -72,7 +114,7 @@ class StoryService:
         finally:
             cursor.close()
 
-    # 3. 지도 영역으로 스토리 검색 (bounds)
+    # 4. 지도 영역으로 스토리 검색 (bounds)
     def search_stories_by_bounds(self, sw_lat: float, sw_lng: float, ne_lat: float, ne_lng: float):
         cursor = self.db.get_cursor()
         try:
@@ -107,7 +149,7 @@ class StoryService:
         finally:
             cursor.close()
     
-    # 3-1. 위치 기반 스토리 검색 (간단한 방식)
+    # 5. 위치 기반 스토리 검색 (간단한 방식)
     def search_stories_by_location(self, lat: float, lng: float, radius: float = 1.0):
         cursor = self.db.get_cursor()
         try:
@@ -184,7 +226,7 @@ class StoryService:
             })
         return {"stories": stories_data}
     
-    # 4. 스토리 수정
+    # 6. 스토리 수정
     def update_story(self, story_id: int, story_data: dict):
         cursor = self.db.get_cursor()
         try:
@@ -214,7 +256,7 @@ class StoryService:
         finally:
             cursor.close()
     
-    # 5. 스토리 삭제
+    # 7. 스토리 삭제
     def delete_story(self, story_id: int):
         cursor = self.db.get_cursor()
         try:

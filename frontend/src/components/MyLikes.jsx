@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { likeAPI } from '../services/api';
+import { likeAPI, storyAPI } from '../services/api';
+import StoryModal from './StoryModal';
 
-function MyLikes({ onClose }) {
+function MyLikes({ onClose, onMoveToLocation }) {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStory, setSelectedStory] = useState(null);
   const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
@@ -122,11 +124,12 @@ function MyLikes({ onClose }) {
         {/* 콘텐츠 */}
         <div style={{
           padding: '24px',
-          maxHeight: 'calc(80vh - 120px)',
+          maxHeight: 'calc(80vh - 140px)',
           overflowY: 'auto',
           WebkitOverflowScrolling: 'touch',
           willChange: 'scroll-position',
-          transform: 'translateZ(0)'
+          transform: 'translateZ(0)',
+          paddingBottom: '32px'
         }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>
@@ -152,6 +155,18 @@ function MyLikes({ onClose }) {
                   boxShadow: '0 4px 15px rgba(255, 107, 157, 0.1)',
                   transition: 'all 0.3s ease',
                   cursor: 'pointer'
+                }}
+                onClick={async () => {
+                  try {
+                    const response = await storyAPI.getStoryById(like.story_id);
+                    if (onMoveToLocation && response.latitude && response.longitude) {
+                      onMoveToLocation(response.latitude, response.longitude);
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                    setSelectedStory(response);
+                  } catch (error) {
+                    console.error('스토리 불러오기 실패:', error);
+                  }
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-4px)';
@@ -211,6 +226,13 @@ function MyLikes({ onClose }) {
         </div>
       </div>
       </div>
+      
+      {selectedStory && (
+        <StoryModal
+          story={selectedStory}
+          onClose={() => setSelectedStory(null)}
+        />
+      )}
     </>
   );
 }
