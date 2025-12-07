@@ -1,0 +1,181 @@
+import React, { useState, useEffect } from 'react';
+import { getCurrentUser, logout } from '../utils/auth';
+
+function UserProfile({ onClose }) {
+  const user = getCurrentUser();
+  const [userInfo, setUserInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.user_id) {
+      fetch(`/users/${user.user_id}`)
+        .then(res => res.json())
+        .then(data => {
+          setUserInfo(data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('Failed to fetch user info:', err);
+          setLoading(false);
+        });
+    }
+  }, [user?.user_id]);
+
+  const handleLogout = () => {
+    logout();
+    window.location.reload();
+  };
+
+  if (!user) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <div>로그인이 필요합니다.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '30px',
+        width: '400px',
+        maxWidth: '90vw',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <h2 style={{ margin: 0, color: '#333' }}>내 프로필</h2>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#666'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>로딩 중...</div>
+          ) : userInfo ? (
+            <>
+              <div style={{
+                textAlign: 'center',
+                marginBottom: '20px',
+                paddingBottom: '20px',
+                borderBottom: '2px solid #f0f0f0'
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                  margin: '0 auto 15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '32px',
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}>
+                  {userInfo.name?.charAt(0) || 'U'}
+                </div>
+                <h3 style={{ margin: '0 0 5px 0', color: '#333' }}>{userInfo.name}</h3>
+                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>@{userInfo.id}</p>
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>이메일</div>
+                  <div style={{ fontSize: '14px', color: '#333' }}>{userInfo.email}</div>
+                </div>
+                
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>가입일</div>
+                  <div style={{ fontSize: '14px', color: '#333' }}>
+                    {new Date(userInfo.created_at).toLocaleDateString('ko-KR')}
+                  </div>
+                </div>
+                
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>User ID</div>
+                  <div style={{ fontSize: '14px', color: '#333' }}>{userInfo.user_id}</div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+              정보를 불러올 수 없습니다.
+            </div>
+          )}
+          
+          
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: 'linear-gradient(45deg, #dc3545, #c82333)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(220, 53, 69, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(220, 53, 69, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 15px rgba(220, 53, 69, 0.3)';
+            }}
+          >
+            로그아웃
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default UserProfile;

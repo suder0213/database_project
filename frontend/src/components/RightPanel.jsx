@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { storyAPI } from '../services/api';
+import { getUserId } from '../utils/auth';
 
 function RightPanel({
   showPanel,
@@ -15,7 +17,10 @@ function RightPanel({
   user,
   setShowLoginModal
 }) {
-  const handleCreateStory = () => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+
+  const handleCreateStory = async () => {
     if (!lat || !lng || !content) {
       alert('위도, 경도, 내용을 모두 입력해주세요.');
       return;
@@ -26,11 +31,44 @@ function RightPanel({
       return;
     }
 
-    // Map 컴포넌트에 스토리 생성 요청
-    window.createStoryFromMain?.({ lat, lng, content });
-    setLat('');
-    setLng('');
-    setContent('');
+    setIsCreating(true);
+    try {
+      const userId = getUserId();
+      
+      // 테스트 계정인 경우 가짜 성공
+      if (userId === '999') {
+        alert('스토리가 작성되었습니다! (테스트 모드)');
+        setLat('');
+        setLng('');
+        setContent('');
+        return;
+      }
+
+      const response = await fetch('/stories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: parseInt(userId),
+          content,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lng),
+          image_url: imageUrl || null
+        })
+      });
+      
+      const data = await response.json();
+
+      if (data.success) {
+        setLat('');
+        setLng('');
+        setContent('');
+        setImageUrl('');
+      }
+    } catch (error) {
+      console.error('Story creation error:', error);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
@@ -262,7 +300,7 @@ function RightPanel({
           />
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '20px' }}>
           <label style={{
             display: 'block',
             marginBottom: '8px',
@@ -293,32 +331,87 @@ function RightPanel({
           />
         </div>
 
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{
+            display: 'block',
+            marginBottom: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            color: '#262626'
+          }}>이미지 업로드 (선택)</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files[0];
+              if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                  const res = await fetch('/upload/image', {
+                    method: 'POST',
+                    body: formData
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setImageUrl(data.url);
+                  }
+                } catch (err) {
+                  console.error('Upload error:', err);
+                }
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              border: '1px solid #dbdbdb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              backgroundColor: '#fafafa',
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              boxSizing: 'border-box',
+              cursor: 'pointer'
+            }}
+          />
+          {imageUrl && (
+            <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+              업로드 완료: {imageUrl}
+            </div>
+          )}
+        </div>
+
         <button
           onClick={handleCreateStory}
+          disabled={isCreating}
           style={{
             width: '100%',
             padding: '12px 16px',
-            background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+            background: isCreating ? '#ccc' : 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
             fontSize: '14px',
             fontWeight: '600',
-            cursor: 'pointer',
+            cursor: isCreating ? 'not-allowed' : 'pointer',
             outline: 'none',
             transition: 'all 0.3s ease',
             boxSizing: 'border-box'
           }}
           onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 8px 25px rgba(240, 148, 51, 0.4)';
+            if (!isCreating) {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 25px rgba(240, 148, 51, 0.4)';
+            }
           }}
           onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = 'none';
+            if (!isCreating) {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }
           }}
         >
-          📍 스토리 생성하기
+          {isCreating ? '작성 중...' : '📍 스토리 생성하기'}
         </button>
       </div>
     </>

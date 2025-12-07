@@ -14,12 +14,75 @@ database_project/
 
 ## 설치 및 실행
 
-### 1. 패키지 설치
+### 🐳 Docker로 실행 (권장)
+
+#### 1. Docker 설치 확인
+- Docker Desktop이 설치되어 있고 실행 중이어야 합니다
+- 다운로드: https://www.docker.com/products/docker-desktop/
+
+#### 2. 데이터베이스 설정
+database.py 파일에서 Oracle DB 연결 정보 수정:
+```python
+self.host = "192.168.0.2"  # Oracle DB 서버 IP
+self.port = 1521
+self.service_name = "xe"
+self.username = "system"  # 실제 사용자명
+self.password = "your_password"  # 실제 비밀번호
+```
+
+#### 3. Docker Compose로 실행
+```bash
+# 백엔드 + 프론트엔드 동시 실행
+docker-compose up --build
+
+# 백그라운드 실행
+docker-compose up -d --build
+
+# 중지
+docker-compose down
+
+# 완전 삭제 (볼륨 포함)
+docker-compose down -v
+```
+
+#### 4. 접속
+- 백엔드 API: http://localhost:8000
+- 프론트엔드: http://localhost:3000
+- API 문서: http://localhost:8000/docs
+
+#### 5. 로그 확인
+```bash
+# 전체 로그
+docker-compose logs
+
+# 실시간 로그
+docker-compose logs -f
+
+# 백엔드만
+docker-compose logs -f backend
+
+# 프론트엔드만
+docker-compose logs -f frontend
+```
+
+#### 6. 문제 해결
+```bash
+# 캐시 문제 발생 시
+docker-compose down -v
+docker system prune -f
+docker-compose up --build
+```
+
+---
+
+### 💻 로컬 환경에서 실행
+
+#### 1. 패키지 설치
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 데이터베이스 설정
+#### 2. 데이터베이스 설정
 database.py 파일에서 Oracle DB 연결 정보 수정:
 - host: localhost
 - port: 1521
@@ -27,7 +90,7 @@ database.py 파일에서 Oracle DB 연결 정보 수정:
 - username: team14_user (실제 사용자명으로 변경)
 - password: team14_password (실제 비밀번호로 변경)
 
-### 3. 서버 실행
+#### 3. 서버 실행
 ```bash
 # 방법 1: uvicorn 직접 실행
 uvicorn main:app --reload
@@ -36,7 +99,7 @@ uvicorn main:app --reload
 python main.py
 ```
 
-### 4. 프론트엔드 실행
+#### 4. 프론트엔드 실행
 (주의) 실행 전 Node.js 설치 필수 
 (IF) Node.js가 설치되어 있지만 명령어를 인식하지 못하는 경우 :[Node.js PATH 문제 해결로 이동](#nodejs-path-문제-해결)
 
@@ -52,7 +115,7 @@ npm install
 npm start
 ```
 
-### 5. API 테스트
+#### 5. API 테스트
 - 백엔드 서버: http://localhost:8000
 - 프론트엔드: http://localhost:3000
 - API 문서: http://localhost:8000/docs (Swagger UI)
@@ -78,7 +141,7 @@ npm start
 - `POST /reviews` - 리뷰 생성
 - `GET /reviews/{review_id}` - 리뷰 조회
 - `GET /reviews/place/{place_id}` - 장소별 리뷰 목록
-- `GET /reviews/user/{user_id}` - 사용자별 리뷰 목록
+- `GET /reviews/user/{user_id}` - 사용자별 리뷰 목록 (장소 좌표 포함)
 - `PUT /reviews/{review_id}` - 리뷰 수정
 - `DELETE /reviews/{review_id}` - 리뷰 삭제
 

@@ -3,6 +3,7 @@ import Map from './Map';
 import LoginModal from './LoginModal';
 import LeftSidebar from './LeftSidebar';
 import RightPanel from './RightPanel';
+import PlaceModal from './PlaceModal';
 
 function Main() {
   const [user, setUser] = useState(null);
@@ -16,6 +17,8 @@ function Main() {
   const [isDragging, setIsDragging] = useState(false);
   const [sidebarOpacity, setSidebarOpacity] = useState(0.95);
   const [panelOpacity, setPanelOpacity] = useState(0.95);
+  const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+  const [selectedPlaceName, setSelectedPlaceName] = useState('');
 
   const handleLogin = (user) => {
     setUser(user);
@@ -58,6 +61,18 @@ function Main() {
   window.setMapClickLocation = (latitude, longitude) => {
     setLat(latitude.toString());
     setLng(longitude.toString());
+  };
+
+  // 장소 모달 열기
+  window.openPlaceModal = (placeId, placeName) => {
+    setSelectedPlaceId(placeId);
+    setSelectedPlaceName(placeName);
+  };
+
+  // 장소 모달 닫을 때 장소 마커 새로고침
+  const handlePlaceModalClose = () => {
+    setSelectedPlaceId(null);
+    window.refreshPlaceMarkers?.();
   };
 
   const moveToCurrentLocation = () => {
@@ -298,6 +313,15 @@ function Main() {
           setShowLoginModal={setShowLoginModal}
         />
       </div>
+
+      {/* 장소 모달 */}
+      {selectedPlaceId && (
+        <PlaceModal
+          placeId={selectedPlaceId}
+          placeName={selectedPlaceName}
+          onClose={handlePlaceModalClose}
+        />
+      )}
     </>
   );
 }

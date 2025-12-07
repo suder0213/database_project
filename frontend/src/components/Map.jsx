@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { storyAPI, placeAPI, reviewAPI } from '../services/api';
 
 function Map({ user }) {
   const mapRef = useRef(null);
@@ -46,35 +47,27 @@ function Map({ user }) {
         return;
       }
       const options = {
-        center: new window.kakao.maps.LatLng(37.4979, 127.0276), // 서울 강남역
+        center: new window.kakao.maps.LatLng(37.4979, 127.0276),
         level: 3,
         draggable: true,
-        scrollwheel: true,
-        disableDoubleClick: false,
-        disableDoubleClickZoom: false,
-        tileAnimation: false,
-        projectionId: 'EPSG:3857'
+        scrollwheel: true
       };
 
       const map = new window.kakao.maps.Map(container, options);
       console.log('맵 생성 성공! - ID:', Date.now());
       mapInitialized.current = true;
 
-      // 교통정보 추가
-      map.addOverlayMapTypeId(window.kakao.maps.MapTypeId.TRAFFIC);
 
-      // 레벨 변경 시 애니메이션 비활성화로 잔상 방지
-      const originalSetLevel = map.setLevel;
-      map.setLevel = function (level, options) {
-        const newOptions = { ...options, animate: false };
-        return originalSetLevel.call(this, level, newOptions);
-      };
 
       setRenderedMap(map);
 
       // 전체 오버레이 관리
       const allOverlays = [];
+      const allMarkers = [];
       let overlaysVisible = true;
+      let storyMarkersVisible = true;
+      let placeMarkersVisible = true;
+      let isMarkerClick = false;
 
       // 사진이 들어간 커스텀 마커 생성 함수
       const createPhotoMarker = (photoUrl, clickHandler) => {
@@ -86,23 +79,43 @@ function Map({ user }) {
           border: 3px solid white;
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
           overflow: hidden;
-          background: white;
+          background: #667eea;
           cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 24px;
         `;
 
-        const img = document.createElement('img');
-        img.src = photoUrl;
-        img.style.cssText = `
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        `;
-
-        markerDiv.appendChild(img);
+        if (photoUrl && photoUrl !== 'null' && photoUrl !== 'undefined' && photoUrl !== '') {
+          const img = document.createElement('img');
+          img.style.cssText = `
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.2s;
+          `;
+          
+          img.onload = function() {
+            this.style.opacity = '1';
+          };
+          
+          img.onerror = function() {
+            this.style.display = 'none';
+            markerDiv.innerHTML = '📸';
+          };
+          
+          img.src = photoUrl;
+          markerDiv.appendChild(img);
+        } else {
+          markerDiv.innerHTML = '📸';
+        }
 
         if (clickHandler) {
           markerDiv.addEventListener('click', function (event) {
-            isMarkerClick = true; // 마커 클릭 플래그 설정
+            isMarkerClick = true;
             clickHandler(event);
           });
         }
@@ -110,163 +123,422 @@ function Map({ user }) {
         return markerDiv;
       };
 
-      // 기본 마커 이미지 (사진이 없을 때)
-      const imageSrc = 'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png';
-      const imageSize = new window.kakao.maps.Size(64, 69);
-      const imageOption = { offset: new window.kakao.maps.Point(27, 69) };
-      const markerImage = new window.kakao.maps.MarkerImage(imageSrc, imageSize, imageOption);
+      // 스토리 오버레이 HTML 생성
+      const createStoryOverlay = (story) => {
+        const imageUrl = story.image_url && story.image_url !== 'null' && story.image_url !== 'undefined' ? story.image_url : '';
+        const userName = story.user_name || '익명';
+        const content = story.content || '';
+        const likes = story.likes || 0;
+        const createdAt = story.created_at ? new Date(story.created_at).toLocaleDateString() : '';
 
-      // 테스트 사진 마커
-      const markerPosition = new window.kakao.maps.LatLng(37.4979, 127.0276); // 서울 강남역
-      const testPhotoUrl = 'https://picsum.photos/200/200?random=1'; // 랜덤 테스트 이미지
-
-      // 커스텀 오버레이 콘텐츠 (인스타 스토리 비율 9:16)
-      const overlayContent = `
-        <div style="
-          position: relative;
-          width: 270px;
-          height: 480px;
-          background: white;
-          border-radius: 20px;
-          border: 3px solid transparent;
-          background-image: linear-gradient(white, white), linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-          background-origin: border-box;
-          background-clip: padding-box, border-box;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 0 20px rgba(240, 148, 51, 0.2);
-          overflow: hidden;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          animation: slideUp 1.0s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-          transform-origin: bottom center;
-        ">
-        <style>
-          @keyframes slideUp {
-            0% {
-              opacity: 0;
-              transform: translateY(50px) scale(0.8);
-              filter: blur(5px);
-            }
-            100% {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-              filter: blur(0px);
-            }
-          }
-        </style>
+        return `
           <div style="
-            height: 100%;
             position: relative;
+            width: 270px;
+            height: 480px;
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #667eea;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           ">
-            <img src="${testPhotoUrl}" style="
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-            " />
-            <!-- 상단 사용자 정보 -->
             <div style="
-              position: absolute;
-              top: 20px;
-              left: 20px;
-              right: 20px;
+              height: 100%;
+              position: relative;
+              overflow: hidden;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
               display: flex;
               align-items: center;
-              z-index: 2;
+              justify-content: center;
+              font-size: 80px;
             ">
+              ${imageUrl ? `<img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;" />` : '📸'}
               <div style="
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background: white;
-                margin-right: 12px;
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                right: 20px;
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                font-weight: bold;
-                color: #333;
-              ">김</div>
-              <div style="
-                color: white;
-                font-weight: bold;
-                text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-              ">김철수</div>
-            </div>
-            
-            <!-- 하단 콘텐츠 -->
-            <div style="
-              position: absolute;
-              bottom: 20px;
-              left: 20px;
-              right: 20px;
-              color: white;
-              text-shadow: 0 1px 3px rgba(0,0,0,0.5);
-            ">
-              <div style="
-                font-size: 16px;
-                font-weight: bold;
-                margin-bottom: 8px;
-              ">테스트 스토리</div>
-              <div style="
-                font-size: 14px;
-                line-height: 1.4;
-                margin-bottom: 12px;
-              ">이곳에서 멋진 추억을 만들었어요! 🌟</div>
-              <div style="
-                display: flex;
-                align-items: center;
-                font-size: 14px;
+                z-index: 2;
               ">
-                <span>❤️ 5</span>
+                <div style="
+                  width: 36px;
+                  height: 36px;
+                  border-radius: 50%;
+                  background: white;
+                  margin-right: 10px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: bold;
+                  color: #667eea;
+                  font-size: 16px;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                ">${userName.charAt(0).toUpperCase()}</div>
+                <div style="
+                  color: white;
+                  font-weight: 600;
+                  font-size: 15px;
+                  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+                ">${userName}</div>
+              </div>
+              
+              <div style="
+                position: absolute;
+                bottom: 20px;
+                left: 20px;
+                right: 20px;
+                color: white;
+                text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+              ">
+                <div style="
+                  font-size: 14px;
+                  line-height: 1.4;
+                  margin-bottom: 12px;
+                ">${content}</div>
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  font-size: 14px;
+                ">
+                  <span>❤️ ${likes}</span>
+                  <span style="font-size: 12px;">${createdAt}</span>
+                </div>
               </div>
             </div>
+            <div style="
+              position: absolute;
+              top: -10px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 0;
+              height: 0;
+              border-left: 10px solid transparent;
+              border-right: 10px solid transparent;
+              border-bottom: 10px solid white;
+            "></div>
           </div>
-          <div style="
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 10px solid transparent;
-            border-right: 10px solid transparent;
-            border-bottom: 10px solid white;
-          "></div>
-        </div>
-      `;
+        `;
+      };
 
-      // 커스텀 오버레이 생성
-      const customOverlay = new window.kakao.maps.CustomOverlay({
-        position: markerPosition,
-        content: overlayContent,
+      // 위치 기반 스토리 불러오기 (bounds 사용)
+      const loadNearbyStories = async () => {
+        if (!storyMarkersVisible) return;
+        
+        try {
+          // 지도의 현재 영역 가져오기
+          const bounds = map.getBounds();
+          const swLatLng = bounds.getSouthWest(); // 남서쪽
+          const neLatLng = bounds.getNorthEast(); // 북동쪽
+          
+          const swLat = swLatLng.getLat();
+          const swLng = swLatLng.getLng();
+          const neLat = neLatLng.getLat();
+          const neLng = neLatLng.getLng();
+          
+          console.log(`🗺️ 지도 영역: SW(${swLat}, ${swLng}) ~ NE(${neLat}, ${neLng})`);
+
+          const response = await storyAPI.getNearbyStoriesByBounds(swLat, swLng, neLat, neLng);
+          const stories = response.stories || [];
+          
+          console.log(`📍 스토리 ${stories.length}개 로드됨:`, stories);
+          console.log('API 응답 전체:', response);
+
+          // 기존 마커 유지 및 새 마커 추가/제거
+          const existingStoryIds = new Set(allMarkers.filter(m => !m._testMarker).map(m => m._storyId));
+          const newStoryIds = new Set(stories.map(s => s.story_id));
+          
+          // 화면에서 벗어난 스토리 마커만 제거
+          for (let i = allMarkers.length - 1; i >= 0; i--) {
+            if (allMarkers[i]._storyId && !allMarkers[i]._testMarker && !newStoryIds.has(allMarkers[i]._storyId)) {
+              allMarkers[i].setMap(null);
+              allMarkers.splice(i, 1);
+            }
+          }
+          
+          for (let i = allOverlays.length - 1; i >= 0; i--) {
+            if (allOverlays[i]._storyId && !allOverlays[i]._testMarker && !newStoryIds.has(allOverlays[i]._storyId)) {
+              allOverlays[i].setMap(null);
+              allOverlays.splice(i, 1);
+            }
+          }
+
+          if (stories.length === 0) {
+            console.log('⚠️ DB에 스토리가 없습니다. 테스트 마커만 표시됩니다.');
+            return;
+          }
+
+          // 새로운 스토리만 마커 생성 (배치 처리)
+          const newMarkers = [];
+          const newOverlays = [];
+          
+          stories.forEach((story) => {
+            if (existingStoryIds.has(story.story_id)) return;
+            
+            const position = new window.kakao.maps.LatLng(story.latitude, story.longitude);
+            let imageUrl = story.image_url;
+            if (!imageUrl || imageUrl === 'null' || imageUrl === 'undefined') {
+              imageUrl = '';
+            }
+
+            const overlayContent = createStoryOverlay(story);
+            const customOverlay = new window.kakao.maps.CustomOverlay({
+              position: position,
+              content: overlayContent,
+              xAnchor: 0.5,
+              yAnchor: 1.0
+            });
+            customOverlay._storyId = story.story_id;
+            newOverlays.push(customOverlay);
+
+            let overlayVisible = false;
+            const photoMarkerElement = createPhotoMarker(imageUrl, function () {
+              overlayVisible = !overlayVisible;
+              customOverlay.setMap(overlayVisible ? map : null);
+            });
+
+            const photoMarkerOverlay = new window.kakao.maps.CustomOverlay({
+              position: position,
+              content: photoMarkerElement,
+              xAnchor: 0.5,
+              yAnchor: 0.5
+            });
+            photoMarkerOverlay._storyId = story.story_id;
+            newMarkers.push(photoMarkerOverlay);
+          });
+          
+          // 배치로 한번에 추가 (토글 상태 확인)
+          requestAnimationFrame(() => {
+            newMarkers.forEach(marker => {
+              if (storyMarkersVisible) {
+                marker.setMap(map);
+              }
+            });
+            allMarkers.push(...newMarkers);
+            allOverlays.push(...newOverlays);
+          });
+          
+          console.log(`✅ 총 ${stories.length}개 스토리 마커 생성 완료`);
+        } catch (error) {
+          console.error('❌ 스토리 로딩 실패:', error);
+          console.error('에러 상세:', error.response?.data || error.message);
+        }
+      };
+
+
+
+      // 테스트 마커 추가 (DB에 스토리가 없을 때 확인용)
+      const testPosition = new window.kakao.maps.LatLng(37.4979, 127.0276);
+      const testImageUrl = '';
+      
+      const testStory = {
+        story_id: 999,
+        user_name: '테스트',
+        content: '테스트 스토리입니다',
+        image_url: testImageUrl,
+        latitude: 37.4979,
+        longitude: 127.0276,
+        likes: 5,
+        created_at: new Date().toISOString()
+      };
+      
+      const testOverlayContent = createStoryOverlay(testStory);
+      const testCustomOverlay = new window.kakao.maps.CustomOverlay({
+        position: testPosition,
+        content: testOverlayContent,
         xAnchor: 0.5,
         yAnchor: 1.0
       });
-
-      // 기본적으로 오버레이 표시
-      customOverlay.setMap(map);
-      allOverlays.push(customOverlay);
-
-      // 사진 마커 클릭 이벤트
-      let overlayVisible = true;
-      const photoMarkerElement = createPhotoMarker(testPhotoUrl, function (event) {
-        if (overlayVisible) {
-          customOverlay.setMap(null);
-          overlayVisible = false;
-        } else {
-          customOverlay.setMap(map);
-          overlayVisible = true;
-        }
+      
+      let testOverlayVisible = false;
+      const testPhotoMarkerElement = createPhotoMarker(testImageUrl, function () {
+        testOverlayVisible = !testOverlayVisible;
+        testCustomOverlay.setMap(testOverlayVisible ? map : null);
       });
-
-      const photoMarkerOverlay = new window.kakao.maps.CustomOverlay({
-        position: markerPosition,
-        content: photoMarkerElement,
+      
+      const testPhotoMarkerOverlay = new window.kakao.maps.CustomOverlay({
+        position: testPosition,
+        content: testPhotoMarkerElement,
         xAnchor: 0.5,
         yAnchor: 0.5
       });
-      photoMarkerOverlay.setMap(map);
+      testPhotoMarkerOverlay._testMarker = true;
+      testPhotoMarkerOverlay._storyId = 999;
+      testCustomOverlay._testMarker = true;
+      
+      if (storyMarkersVisible) {
+        testPhotoMarkerOverlay.setMap(map);
+      }
+      allMarkers.push(testPhotoMarkerOverlay);
+      allOverlays.push(testCustomOverlay);
+      
+      console.log('✅ 테스트 마커 생성 완료 (37.4979, 127.0276)');
+      
+      // 지도를 테스트 마커 위치로 이동
+      map.setCenter(testPosition);
+      map.setLevel(3);
 
-      // 마커 클릭 플래그
-      let isMarkerClick = false;
+      // 초기 스토리 로드
+      loadNearbyStories();
+      
+      // 장소 마커 로드 (최적화)
+      const loadNearbyPlaces = async () => {
+        if (!placeMarkersVisible) return;
+        
+        try {
+          const bounds = map.getBounds();
+          const swLatLng = bounds.getSouthWest();
+          const neLatLng = bounds.getNorthEast();
+          
+          console.log(`📍 장소 검색 영역: SW(${swLatLng.getLat()}, ${swLatLng.getLng()}) ~ NE(${neLatLng.getLat()}, ${neLatLng.getLng()})`);
+          
+          const response = await placeAPI.searchPlacesByBounds(
+            swLatLng.getLat(), swLatLng.getLng(),
+            neLatLng.getLat(), neLatLng.getLng()
+          );
+          const places = response.places || [];
+          
+          console.log(`📍 장소 ${places.length}개 로드됨:`, places);
+          
+          const existingPlaceIds = new Set(allMarkers.filter(m => m._placeId).map(m => m._placeId));
+          const newPlaceIds = new Set(places.map(p => p.place_id));
+          
+          // 화면에서 벗어난 장소 마커 제거
+          for (let i = allMarkers.length - 1; i >= 0; i--) {
+            if (allMarkers[i]._placeId && !newPlaceIds.has(allMarkers[i]._placeId)) {
+              allMarkers[i].setMap(null);
+              allMarkers.splice(i, 1);
+            }
+          }
+          
+          for (let i = allOverlays.length - 1; i >= 0; i--) {
+            if (allOverlays[i]._placeId && !newPlaceIds.has(allOverlays[i]._placeId)) {
+              allOverlays[i].setMap(null);
+              allOverlays.splice(i, 1);
+            }
+          }
+          
+          // 배치 처리
+          const newPlaceMarkers = [];
+          const newPlaceOverlays = [];
+          
+          places.forEach((place) => {
+            if (existingPlaceIds.has(place.place_id)) return;
+            
+            const position = new window.kakao.maps.LatLng(place.latitude, place.longitude);
+            
+            const placeOverlayDiv = document.createElement('div');
+            placeOverlayDiv.style.cssText = `
+              padding: 15px;
+              background: white;
+              border-radius: 12px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              min-width: 200px;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              cursor: pointer;
+            `;
+            placeOverlayDiv.innerHTML = `
+              <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px; color: #333;">📍 ${place.name}</div>
+              <div style="font-size: 13px; color: #666;">⭐ ${place.average_rating || 'N/A'}</div>
+            `;
+            
+
+            placeOverlayDiv.addEventListener('click', function() {
+              window.openPlaceModal?.(place.place_id, place.name);
+            });
+            
+            const placeCustomOverlay = new window.kakao.maps.CustomOverlay({
+              position: position,
+              content: placeOverlayDiv,
+              xAnchor: 0.5,
+              yAnchor: 1.3
+            });
+            placeCustomOverlay._placeId = place.place_id;
+            newPlaceOverlays.push(placeCustomOverlay);
+            
+            const placeMarker = document.createElement('div');
+            placeMarker.innerHTML = '📍';
+            placeMarker.style.cssText = `
+              font-size: 32px;
+              cursor: pointer;
+              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+              transition: transform 0.2s;
+            `;
+            
+            let placeVisible = false;
+            placeMarker.addEventListener('click', function() {
+              isMarkerClick = true;
+              placeVisible = !placeVisible;
+              placeCustomOverlay.setMap(placeVisible ? map : null);
+            });
+            
+            const placeMarkerOverlay = new window.kakao.maps.CustomOverlay({
+              position: position,
+              content: placeMarker,
+              xAnchor: 0.5,
+              yAnchor: 0.5
+            });
+            placeMarkerOverlay._placeId = place.place_id;
+            newPlaceMarkers.push(placeMarkerOverlay);
+          });
+          
+          // 배치로 한번에 추가
+          requestAnimationFrame(() => {
+            if (placeMarkersVisible) {
+              newPlaceMarkers.forEach(marker => marker.setMap(map));
+            }
+            allMarkers.push(...newPlaceMarkers);
+            allOverlays.push(...newPlaceOverlays);
+          });
+          
+          console.log(`✅ 총 ${places.length}개 장소 마커 생성 완료`);
+        } catch (error) {
+          console.error('❌ 장소 로딩 실패:', error);
+          console.error('에러 상세:', error.response?.data || error.message);
+        }
+      };
+      
+      setTimeout(() => loadNearbyPlaces(), 500);
+
+      // 지도 이동 시 스토리/장소 로드 (최적화)
+      let idleTimeout;
+      let isLoading = false;
+      let lastBounds = null;
+      
+      window.kakao.maps.event.addListener(map, 'idle', function() {
+        if (isLoading) return;
+        
+        // 영역 변화 확인 (적은 이동은 무시)
+        const currentBounds = map.getBounds();
+        if (lastBounds) {
+          const swLat = currentBounds.getSouthWest().getLat();
+          const swLng = currentBounds.getSouthWest().getLng();
+          const neLat = currentBounds.getNorthEast().getLat();
+          const neLng = currentBounds.getNorthEast().getLng();
+          
+          const lastSwLat = lastBounds.getSouthWest().getLat();
+          const lastSwLng = lastBounds.getSouthWest().getLng();
+          const lastNeLat = lastBounds.getNorthEast().getLat();
+          const lastNeLng = lastBounds.getNorthEast().getLng();
+          
+          // 30% 이상 이동했을 때만 로드
+          const latDiff = Math.abs(swLat - lastSwLat) / Math.abs(lastNeLat - lastSwLat);
+          const lngDiff = Math.abs(swLng - lastSwLng) / Math.abs(lastNeLng - lastSwLng);
+          if (latDiff < 0.3 && lngDiff < 0.3) return;
+        }
+        
+        clearTimeout(idleTimeout);
+        idleTimeout = setTimeout(() => {
+          isLoading = true;
+          lastBounds = map.getBounds();
+          Promise.all([loadNearbyStories(), loadNearbyPlaces()]).finally(() => {
+            setTimeout(() => { isLoading = false; }, 500);
+          });
+        }, 2000);
+      });
 
       // 맵 클릭 이벤트 (새 스토리 작성)
       window.kakao.maps.event.addListener(map, 'click', function (mouseEvent) {
@@ -436,12 +708,72 @@ function Map({ user }) {
 
       });
 
+      // 스토리 마커 토글 버튼
+      const storyMarkerButton = document.createElement('button');
+      storyMarkerButton.innerHTML = '📸 스토리 끄기';
+      storyMarkerButton.style.cssText = `
+        position: absolute;
+        top: 60px;
+        left: 10px;
+        z-index: 1000;
+        background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 25px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s;
+      `;
+      
+      storyMarkerButton.addEventListener('click', function() {
+        storyMarkersVisible = !storyMarkersVisible;
+        allMarkers.forEach(marker => {
+          if (marker._storyId) {
+            marker.setMap(storyMarkersVisible ? map : null);
+          }
+        });
+        this.innerHTML = storyMarkersVisible ? '📸 스토리 끄기' : '📸 스토리 켜기';
+      });
+      
+      // 장소 마커 토글 버튼
+      const placeMarkerButton = document.createElement('button');
+      placeMarkerButton.innerHTML = '📍 장소 끄기';
+      placeMarkerButton.style.cssText = `
+        position: absolute;
+        top: 110px;
+        left: 10px;
+        z-index: 1000;
+        background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 25px;
+        box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s;
+      `;
+      
+      placeMarkerButton.addEventListener('click', function() {
+        placeMarkersVisible = !placeMarkersVisible;
+        allMarkers.forEach(marker => {
+          if (marker._placeId) {
+            marker.setMap(placeMarkersVisible ? map : null);
+          }
+        });
+        this.innerHTML = placeMarkersVisible ? '📍 장소 끄기' : '📍 장소 켜기';
+      });
+      
       // 전체 오버레이 토글 버튼 생성
       const toggleButton = document.createElement('button');
       toggleButton.innerHTML = '💬 스토리 카드 끄기';
       toggleButton.style.cssText = `
         position: absolute;
-        top: 60px;
+        top: 160px;
         left: 10px;
         z-index: 1000;
         background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
@@ -478,25 +810,9 @@ function Map({ user }) {
 
         overlaysVisible = !overlaysVisible;
 
-        // 스토리 카드들에 페이드 애니메이션 적용
-        allOverlays.forEach((overlay, index) => {
-          setTimeout(() => {
-            if (overlaysVisible) {
-              overlay.setMap(map);
-              // 나타나는 애니메이션
-              const overlayElement = overlay.getContent();
-              if (overlayElement) {
-                const div = document.createElement('div');
-                div.innerHTML = overlayElement;
-                const cardElement = div.querySelector('div');
-                if (cardElement) {
-                  cardElement.style.animation = 'fadeInUp 0.5s ease-out';
-                }
-              }
-            } else {
-              overlay.setMap(null);
-            }
-          }, index * 100); // 순차적으로 나타나기
+        // 스토리 카드 토글 (즉시 처리)
+        allOverlays.forEach((overlay) => {
+          overlay.setMap(overlaysVisible ? map : null);
         });
 
         // 버튼 텍스트 변경 애니메이션
@@ -524,10 +840,12 @@ function Map({ user }) {
       document.head.appendChild(style);
 
       // 버튼을 맵 컨테이너에 추가
+      container.parentElement.appendChild(storyMarkerButton);
+      container.parentElement.appendChild(placeMarkerButton);
       container.parentElement.appendChild(toggleButton);
 
       // 지도 타입 변경 기능
-      let currentTypeId = window.kakao.maps.MapTypeId.TRAFFIC; // 기본 교통정보
+      let currentTypeId = null;
       
       const setOverlayMapTypeId = (maptype) => {
         let changeMaptype;
@@ -566,7 +884,7 @@ function Map({ user }) {
       const buttonContainer = document.createElement('div');
       buttonContainer.style.cssText = `
         position: absolute;
-        top: 120px;
+        top: 220px;
         left: 10px;
         z-index: 1000;
         display: flex;
@@ -631,10 +949,32 @@ function Map({ user }) {
 
       container.parentElement.appendChild(buttonContainer);
 
+      // 장소 마커 강제 새로고침
+      window.refreshPlaceMarkers = () => {
+        // 모든 장소 마커 제거
+        for (let i = allMarkers.length - 1; i >= 0; i--) {
+          if (allMarkers[i]._placeId) {
+            allMarkers[i].setMap(null);
+            allMarkers.splice(i, 1);
+          }
+        }
+        for (let i = allOverlays.length - 1; i >= 0; i--) {
+          if (allOverlays[i]._placeId) {
+            allOverlays[i].setMap(null);
+            allOverlays.splice(i, 1);
+          }
+        }
+        // 다시 로드
+        loadNearbyPlaces();
+      };
+
       // 전역 변수로 맵과 오버레이 배열 저장
       window.kakaoMap = map;
       window.allOverlays = allOverlays;
+      window.allMarkers = allMarkers;
       window.createPhotoMarker = createPhotoMarker;
+      window.loadNearbyStories = loadNearbyStories;
+      window.placeAPI = placeAPI;
     };
 
     // 카카오맵 초기화 시작

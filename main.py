@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from Controller.user_controller import router as user_router
 from Controller.place_controller import router as place_router
 from Controller.review_controller import router as review_router
@@ -7,8 +8,12 @@ from Controller.story_controller import router as story_router
 from Controller.comment_controller import router as comment_router
 from Controller.like_controller import router as like_router
 from Controller.tag_controller import router as tag_router
+from Controller.upload_controller import router as upload_router
 
 app = FastAPI()
+
+# Static 파일 서빙
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS 설정 (프론트엔드 연동을 위해 필요)
 app.add_middleware(
@@ -27,6 +32,7 @@ app.include_router(story_router)
 app.include_router(comment_router)
 app.include_router(like_router)
 app.include_router(tag_router)
+app.include_router(upload_router)
 
 if __name__ == "__main__":
     import uvicorn

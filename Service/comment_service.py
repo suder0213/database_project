@@ -1,7 +1,7 @@
 from database import db_connection
 from Enitity.Comment_t.comment_t import Comment_t
 from datetime import datetime
-import cx_Oracle
+import oracledb
 
 class CommentService:
     def __init__(self):
@@ -9,7 +9,7 @@ class CommentService:
 
     # LOB 데이터 처리 헬퍼 (필수)
     def _get_value(self, val):
-        if isinstance(val, cx_Oracle.LOB):
+        if isinstance(val, oracledb.LOB):
             return val.read()
         return val
 

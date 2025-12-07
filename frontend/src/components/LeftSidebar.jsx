@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import UserProfile from './UserProfile';
+import MyStories from './MyStories';
+import MyReviews from './MyReviews';
+import { checkAuthStatus } from '../utils/auth';
 
 function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOpacity }) {
+  const [showProfile, setShowProfile] = useState(false);
+  const [showMyStories, setShowMyStories] = useState(false);
+  const [showMyReviews, setShowMyReviews] = useState(false);
+  const isLoggedIn = checkAuthStatus();
   return (
     <div style={{
       position: 'absolute',
@@ -63,6 +71,61 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
       }}>
         💡 마커를 클릭하면 스토리 카드를 볼 수 있어요!
       </div>
+
+      {isLoggedIn && (
+        <div style={{
+          marginTop: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <button
+            onClick={() => setShowProfile(true)}
+            style={{
+              padding: '12px 16px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            👤 내 프로필
+          </button>
+          <button
+            onClick={() => setShowMyStories(true)}
+            style={{
+              padding: '12px 16px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            📖 내 스토리
+          </button>
+          <button
+            onClick={() => setShowMyReviews(true)}
+            style={{
+              padding: '12px 16px',
+              backgroundColor: '#ffc107',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '600'
+            }}
+          >
+            ⭐ 내 리뷰/댓글
+          </button>
+        </div>
+      )}
 
       <div style={{
         marginTop: '24px',
@@ -185,6 +248,17 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
       >
         ✕
       </button>
+
+      {/* 모달들 */}
+      {showProfile && (
+        <UserProfile onClose={() => setShowProfile(false)} />
+      )}
+      {showMyStories && (
+        <MyStories onClose={() => setShowMyStories(false)} />
+      )}
+      {showMyReviews && (
+        <MyReviews onClose={() => setShowMyReviews(false)} />
+      )}
     </div>
   );
 }

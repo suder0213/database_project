@@ -27,11 +27,11 @@ function LoginPage({ onLogin, onBackToMap }) {
     try {
       const response = await authAPI.login(formData.id, formData.password);
       
-      if (response.success) {
-        // 로그인 성공
-        saveAuthData(response.token, {
+      if (response.user_id) {
+        // 로그인 성공 - API 명세에 따라 user_id가 있으면 성공
+        saveAuthData({
           user_id: response.user_id,
-          name: response.name,
+          name: response.name || formData.id,
           id: formData.id
         });
         onLogin();

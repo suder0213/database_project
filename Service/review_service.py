@@ -1,7 +1,7 @@
 from database import db_connection
 from Enitity.Review import Review, ReviewCreateDto, ReviewUpdateDto
 from datetime import datetime
-import cx_Oracle
+import oracledb
 
 class ReviewService:
     def __init__(self):
@@ -9,7 +9,7 @@ class ReviewService:
     
     # [추가] LOB 객체일 경우 문자열로 변환해주는 헬퍼 함수
     def _get_value(self, val):
-        if isinstance(val, cx_Oracle.LOB):
+        if isinstance(val, oracledb.LOB):
             return val.read()
         return val
 
@@ -19,11 +19,14 @@ class ReviewService:
         try:
             sql = """UPDATE PLACE SET average_rating = (
                         SELECT NVL(AVG(rating), 0) FROM REVIEW WHERE place_id = :1
-                     ) WHERE place_id = :1"""
-            cursor.execute(sql, (place_id,))
+                     ) WHERE place_id = :2"""
+            cursor.execute(sql, (place_id, place_id))
             self.db.connection.commit()
+            print(f"Updated average rating for place {place_id}")
         except Exception as e:
             print(f"Error updating place rating: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             cursor.close()
 
@@ -113,12 +116,12 @@ class ReviewService:
         finally:
             cursor.close()
 
-    # 4. 사용자별 리뷰 목록 (수정됨: _get_value 사용)
+    # 4. 사용자별 리뷰 목록 (수정됨: _get_value 사용, 좌표 추가)
     def get_reviews_by_user(self, user_id: int):
         cursor = self.db.get_cursor()
         try:
             sql = """
-                SELECT r.review_id, r.title, r.content, r.rating, r.created_at, p.name
+                SELECT r.review_id, r.title, r.content, r.rating, r.created_at, p.name, p.latitude, p.longitude
                 FROM REVIEW r
                 JOIN PLACE p ON r.place_id = p.place_id
                 WHERE r.user_id = :1
@@ -133,7 +136,8 @@ class ReviewService:
                     review_id=row[0], 
                     title=self._get_value(row[1]), 
                     content=self._get_value(row[2]), 
-                    rating=row[3], created_at=row[4], place_name=row[5]
+                    rating=row[3], created_at=row[4], place_name=row[5],
+                    latitude=row[6], longitude=row[7]
                 ))
             return reviews
         except Exception as e:

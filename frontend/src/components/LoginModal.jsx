@@ -1,21 +1,44 @@
 import React, { useState } from 'react';
+import { saveAuthData } from '../utils/auth';
+import { authAPI } from '../services/api';
 
 function LoginModal({ isOpen, onClose, onLogin }) {
   const [loginForm, setLoginForm] = useState({ id: '', password: '' });
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     
-    // 테스트 계정 확인
-    if (loginForm.id === 'test' && loginForm.password === '1234') {
-      const user = { id: 'test', name: '테스트 사용자' };
-      onLogin(user);
-      setLoginForm({ id: '', password: '' });
-      alert('로그인 성공! 환영합니다 🎉');
-    } else if (!loginForm.id || !loginForm.password) {
+    if (!loginForm.id || !loginForm.password) {
       alert('아이디와 비밀번호를 입력해주세요.');
-    } else {
-      alert('로그인 실패! 테스트 계정: test / 1234');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authAPI.login(loginForm.id, loginForm.password);
+      
+      if (response.user_id) {
+        // 사용자 정보 조회
+        const userInfo = await fetch(`/users/${response.user_id}`);
+        const userData = await userInfo.json();
+        
+        saveAuthData({
+          user_id: userData.user_id,
+          id: userData.id,
+          name: userData.name
+        });
+        onLogin(userData);
+        setLoginForm({ id: '', password: '' });
+        alert('로그인 성공! 환영합니다 🎉');
+      } else {
+        alert(response.message || '로그인 실패!');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -310,6 +333,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
           <button
             className="modal-button"
             type="submit"
+            disabled={isLoading}
             style={{
               width: '100%',
               padding: '12px 16px',
@@ -319,11 +343,12 @@ function LoginModal({ isOpen, onClose, onLogin }) {
               borderRadius: '8px',
               fontSize: '14px',
               fontWeight: '600',
-              cursor: 'pointer',
-              outline: 'none'
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              outline: 'none',
+              opacity: isLoading ? 0.7 : 1
             }}
           >
-            로그인
+            {isLoading ? '로그인 중...' : '로그인'}
           </button>
         </form>
         
@@ -337,9 +362,8 @@ function LoginModal({ isOpen, onClose, onLogin }) {
           color: '#1976d2',
           border: '1px solid #bbdefb'
         }}>
-          🔑 <strong>테스트 계정</strong><br/>
-          아이디: <code style={{backgroundColor: '#fff', padding: '2px 4px', borderRadius: '3px'}}>test</code><br/>
-          비밀번호: <code style={{backgroundColor: '#fff', padding: '2px 4px', borderRadius: '3px'}}>1234</code>
+          🔑 <strong>DB 계정으로 로그인 가능</strong><br/>
+          예: gimsoi2 / 1234
         </div>
       </div>
     </div>

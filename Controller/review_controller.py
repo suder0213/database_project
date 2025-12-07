@@ -47,7 +47,7 @@ def get_place_reviews(place_id: int):
         ]
     }
 
-# 4. 사용자별 리뷰 목록
+# 4. 사용자별 리뷰 목록 (좌표 포함)
 @router.get("/user/{user_id}")
 def get_user_reviews(user_id: int):
     reviews = review_service.get_reviews_by_user(user_id)
@@ -59,6 +59,8 @@ def get_user_reviews(user_id: int):
                 "content": r.content,
                 "rating": r.rating,
                 "place_name": r.place_name,
+                "latitude": r.latitude,
+                "longitude": r.longitude,
                 "created_at": r.created_at
             } for r in reviews
         ]

@@ -30,6 +30,16 @@ def search_places_by_location(
         return result
     raise HTTPException(status_code=404, detail="No places found")
 
+@router.get("/search/bounds")
+def search_places_by_bounds(
+    sw_lat: float = Query(...),
+    sw_lng: float = Query(...),
+    ne_lat: float = Query(...),
+    ne_lng: float = Query(...)
+):
+    result = place_service.search_places_by_bounds(sw_lat, sw_lng, ne_lat, ne_lng)
+    return result
+
 @router.put("/{place_id}")
 def update_place_info(place_id: int, place_data: PlaceUpdateDto):
     result = place_service.update_place(place_id, place_data.model_dump())

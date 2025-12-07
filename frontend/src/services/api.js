@@ -10,12 +10,15 @@ const api = axios.create({
   },
 });
 
-// 요청 인터셉터: 토큰 자동 추가
+// 요청 인터셉터: user_id 자동 추가
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const userId = localStorage.getItem('user_id');
+    if (userId && config.data && typeof config.data === 'object') {
+      // POST, PUT 요청에 user_id 자동 추가 (이미 있으면 덮어쓰지 않음)
+      if (!config.data.user_id) {
+        config.data.user_id = parseInt(userId);
+      }
     }
     return config;
   },
@@ -29,8 +32,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // 토큰 만료 시 로그아웃
-      localStorage.removeItem('token');
+      // 인증 실패 시 로그아웃
+      localStorage.removeItem('user_id');
       localStorage.removeItem('user');
       window.location.reload();
     }
@@ -58,6 +61,11 @@ export const storyAPI = {
     return response.data;
   },
   
+  getNearbyStoriesByBounds: async (swLat, swLng, neLat, neLng) => {
+    const response = await api.get(`/stories/location/bounds?sw_lat=${swLat}&sw_lng=${swLng}&ne_lat=${neLat}&ne_lng=${neLng}`);
+    return response.data;
+  },
+  
   createStory: async (storyData) => {
     const response = await api.post('/stories', storyData);
     return response.data;
@@ -65,6 +73,11 @@ export const storyAPI = {
   
   getStoryById: async (storyId) => {
     const response = await api.get(`/stories/${storyId}`);
+    return response.data;
+  },
+  
+  getUserStories: async (userId) => {
+    const response = await api.get(`/stories/user/${userId}`);
     return response.data;
   },
   
@@ -86,6 +99,11 @@ export const likeAPI = {
     return response.data;
   },
   
+  getUserLikes: async (userId) => {
+    const response = await api.get(`/likes/user/${userId}`);
+    return response.data;
+  },
+  
   getLikeCount: async (storyId) => {
     const response = await api.get(`/likes/story/${storyId}/count`);
     return response.data;
@@ -104,8 +122,123 @@ export const placeAPI = {
     return response.data;
   },
   
+  searchPlacesByBounds: async (swLat, swLng, neLat, neLng) => {
+    const response = await api.get(`/places/search/bounds?sw_lat=${swLat}&sw_lng=${swLng}&ne_lat=${neLat}&ne_lng=${neLng}`);
+    return response.data;
+  },
+  
   createPlace: async (placeData) => {
     const response = await api.post('/places', placeData);
+    return response.data;
+  },
+  
+  getPlaceById: async (placeId) => {
+    const response = await api.get(`/places/${placeId}`);
+    return response.data;
+  }
+};
+
+// 리뷰 관련 API
+export const reviewAPI = {
+  createReview: async (reviewData) => {
+    const response = await api.post('/reviews', reviewData);
+    return response.data;
+  },
+  
+  getReviewById: async (reviewId) => {
+    const response = await api.get(`/reviews/${reviewId}`);
+    return response.data;
+  },
+  
+  getPlaceReviews: async (placeId) => {
+    const response = await api.get(`/reviews/place/${placeId}`);
+    return response.data;
+  },
+  
+  getUserReviews: async (userId) => {
+    const response = await api.get(`/reviews/user/${userId}`);
+    return response.data;
+  },
+  
+  updateReview: async (reviewId, reviewData) => {
+    const response = await api.put(`/reviews/${reviewId}`, reviewData);
+    return response.data;
+  },
+  
+  deleteReview: async (reviewId) => {
+    const response = await api.delete(`/reviews/${reviewId}`);
+    return response.data;
+  }
+};
+
+// 댓글 관련 API
+export const commentAPI = {
+  createComment: async (reviewId, content) => {
+    const response = await api.post('/comments', { review_id: reviewId, content });
+    return response.data;
+  },
+  
+  getCommentById: async (commentId) => {
+    const response = await api.get(`/comments/${commentId}`);
+    return response.data;
+  },
+  
+  getReviewComments: async (reviewId) => {
+    const response = await api.get(`/comments/review/${reviewId}`);
+    return response.data;
+  },
+  
+  getUserComments: async (userId) => {
+    const response = await api.get(`/comments/user/${userId}`);
+    return response.data;
+  },
+  
+  updateComment: async (commentId, content) => {
+    const response = await api.put(`/comments/${commentId}`, { content });
+    return response.data;
+  },
+  
+  deleteComment: async (commentId) => {
+    const userId = localStorage.getItem('user_id');
+    const response = await api.delete(`/comments/${commentId}?user_id=${userId}`);
+    return response.data;
+  }
+};
+
+// 태그 관련 API
+export const tagAPI = {
+  getAllTags: async () => {
+    const response = await api.get('/tags');
+    return response.data;
+  },
+  
+  createTag: async (tagData) => {
+    const response = await api.post('/tags', tagData);
+    return response.data;
+  },
+  
+  getTagById: async (tagId) => {
+    const response = await api.get(`/tags/${tagId}`);
+    return response.data;
+  },
+  
+  addTagToStory: async (storyId, tagName) => {
+    const response = await api.post(`/tags/story/${storyId}`, { tag_name: tagName });
+    return response.data;
+  },
+  
+  removeTagFromStory: async (storyId, tagId) => {
+    const response = await api.delete(`/tags/story/${storyId}/tag/${tagId}`);
+    return response.data;
+  },
+  
+  getStoryTags: async (storyId) => {
+    const response = await api.get(`/tags/story/${storyId}`);
+    return response.data;
+  },
+  
+  getTagStories: async (tagId) => {
+    const response = await api.get(`/tags/${tagId}/stories`);
     return response.data;
   }
 };

@@ -496,4 +496,170 @@ const addTagToStory = async (storyId, tagName) => {
     body: JSON.stringify({ tag_name: tagName })
   });
 };
+
+// Phase 3 추가 기능
+const getUserStats = async (userId) => {
+  return fetch(`/users/${userId}/stats`);
+};
+
+const getPopularStories = async (minLikes) => {
+  return fetch(`/stories/popular?min_likes=${minLikes}`);
+};
+
+const getHighRatedPlaces = async (minRating) => {
+  return fetch(`/places/high-rated?min_rating=${minRating}`);
+};
+
+const searchReviewsByPlace = async (placeName) => {
+  return fetch(`/reviews/search/place?place_name=${encodeURIComponent(placeName)}`);
+};
+
+const getExcellentReviews = async (threshold) => {
+  return fetch(`/reviews/excellent?threshold=${threshold}`);
+};
+
+const searchPlacesByName = async (name) => {
+  return fetch(`/places/search/name?name=${encodeURIComponent(name)}`);
+};
+```
+
+---
+
+# Phase 3에서 요구하는 기능들
+
+## 기존 API로 구현 가능한 기능들
+
+- **#Q3 내가 쓴 스토리 보기**: `GET /stories/user/{user_id}` 사용
+- **#Q11 내 리뷰에 달린 댓글 보기**: `GET /comments/user/{user_id}` 사용 (리뷰 작성자 기준으로 필터링)
+- **#Q19 태그로 스토리 검색**: `GET /tags/{tag_id}/stories` 사용 (태그명으로 tag_id 먼저 조회)
+
+## 추가 API가 필요한 기능들
+
+### 사용자 활동 통계 #Q6 #Q17
+```
+GET /users/{user_id}/stats
+Response: {
+  "user_id": 123,
+  "story_count": 15,
+  "review_count": 8,
+  "average_review_rating": 4.2
+}
+```
+
+### 인기 스토리 검색 (좋아요 수 기준) #Q2
+```
+GET /stories/popular?min_likes=10
+Response: {
+  "stories": [
+    {
+      "story_id": 456,
+      "content": "정말 멋진 장소!",
+      "latitude": 37.5665,
+      "longitude": 126.9780,
+      "likes": 25,
+      "user_name": "김철수",
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+### 평점 높은 장소 검색 #Q1
+```
+GET /places/high-rated?min_rating=4.5
+Response: {
+  "places": [
+    {
+      "place_id": 1,
+      "name": "스타벅스 강남점",
+      "latitude": 37.5665,
+      "longitude": 126.9780,
+      "average_rating": 4.7,
+      "review_count": 23
+    }
+  ]
+}
+```
+
+### 장소 이름으로 리뷰 검색 #Q4
+```
+GET /reviews/search/place?place_name=스타벅스
+Response: {
+  "reviews": [
+    {
+      "review_id": 123,
+      "title": "좋은 카페",
+      "content": "커피가 맛있어요",
+      "rating": 4.5,
+      "place_name": "스타벅스 강남점",
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+### 우수 리뷰 모아보기 (평균보다 높은 평점) #Q9
+```
+GET /reviews/excellent?threshold=1.5
+Response: {
+  "average_rating": 3.8,
+  "reviews": [
+    {
+      "review_id": 789,
+      "title": "최고의 경험",
+      "rating": 5.0,
+      "place_name": "미슐랭 레스토랑",
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+### '핫' 리뷰가 달린 장소 (댓글이 있는 리뷰) #Q14
+```
+GET /places/{place_id}/hot-reviews
+Response: {
+  "reviews": [
+    {
+      "review_id": 456,
+      "title": "분위기 좋은 카페",
+      "rating": 4.5,
+      "comment_count": 3,
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+### 특정 평점 리뷰가 달린 장소 #Q16
+```
+GET /reviews/by-rating?rating=4.7
+Response: {
+  "reviews": [
+    {
+      "review_id": 123,
+      "title": "완벽한 카페",
+      "rating": 4.7,
+      "place_name": "스타벅스 강남점",
+      "created_at": "2024-01-01T10:00:00Z"
+    }
+  ]
+}
+```
+
+### 장소 이름으로 장소 상세 검색 #New
+```
+GET /places/search/name?name=스타벅스
+Response: {
+  "places": [
+    {
+      "place_id": 1,
+      "name": "스타벅스 강남점",
+      "latitude": 37.5665,
+      "longitude": 126.9780,
+      "average_rating": 4.5,
+      "review_count": 15
+    }
+  ]
+}
 ```

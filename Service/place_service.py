@@ -88,6 +88,34 @@ class PlaceService:
         
         return {"places": places_data}
     
+    # 영역 기반 장소 검색 (bounds) - 최적화
+    def search_places_by_bounds(self, sw_lat: float, sw_lng: float, ne_lat: float, ne_lng: float):
+        cursor = self.db.get_cursor()
+        try:
+            sql = """
+                SELECT place_id, name, average_rating, latitude, longitude
+                FROM PLACE
+                WHERE latitude BETWEEN :1 AND :2
+                  AND longitude BETWEEN :3 AND :4
+            """
+            cursor.execute(sql, (sw_lat, ne_lat, sw_lng, ne_lng))
+            rows = cursor.fetchall()
+            
+            places_data = []
+            for row in rows:
+                places_data.append({
+                    "place_id": row[0],
+                    "name": row[1],
+                    "average_rating": row[2],
+                    "latitude": row[3],
+                    "longitude": row[4]
+                })
+            return {"places": places_data}
+        except Exception as e:
+            return {"places": []}
+        finally:
+            cursor.close()
+    
     # 장소 정보 수정
     def update_place(self, place_id: int, place_data: dict):
         cursor = self.db.get_cursor()

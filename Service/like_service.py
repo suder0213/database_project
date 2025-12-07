@@ -1,13 +1,13 @@
 from database import db_connection
 from Enitity.Like_t import Like_t
-import cx_Oracle
+import oracledb
 
 class LikeService:
     def __init__(self):
         self.db = db_connection
 
     def _get_value(self, val):
-        if isinstance(val, cx_Oracle.LOB):
+        if isinstance(val, oracledb.LOB):
             return val.read()
         return val
 
