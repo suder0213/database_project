@@ -167,6 +167,10 @@ function Map({ user }) {
               display: flex;
               align-items: center;
               z-index: 2;
+              background: rgba(255, 255, 255, 0.9);
+              padding: 8px 12px;
+              border-radius: 20px;
+              backdrop-filter: blur(10px);
             ">
               <div style="
                 width: 36px;
@@ -183,31 +187,43 @@ function Map({ user }) {
                 box-shadow: 0 2px 8px rgba(0,0,0,0.2);
               ">${userName.charAt(0).toUpperCase()}</div>
               <div style="
-                color: white;
+                color: #333;
                 font-weight: 600;
                 font-size: 15px;
-                text-shadow: 0 2px 4px rgba(0,0,0,0.6);
               ">${userName}</div>
             </div>
             
             <div style="
               position: absolute;
-              bottom: 20px;
-              left: 20px;
-              right: 20px;
-              color: white;
-              text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+              bottom: 10px;
+              left: 10px;
+              right: 10px;
+              background: rgba(255, 255, 255, 0.9);
+              padding: 12px;
+              border-radius: 12px;
+              backdrop-filter: blur(10px);
+              max-height: 180px;
+              overflow: hidden;
             ">
               <div style="
                 font-size: 14px;
                 line-height: 1.4;
                 margin-bottom: 12px;
+                color: #333;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                display: -webkit-box;
+                -webkit-line-clamp: 6;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                text-overflow: ellipsis;
               ">${content}</div>
               <div style="
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 font-size: 14px;
+                color: #666;
               ">
                 <span id="like-count-${story.story_id}">❤️ ${likes}</span>
                 <span style="font-size: 12px;">${createdAt}</span>
@@ -237,8 +253,30 @@ function Map({ user }) {
           "></div>
         `;
         
+        // 클릭 모달 열기
+        let clickTimeout;
+        overlayDiv.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+            return;
+          }
+          
+          clickTimeout = setTimeout(() => {
+            clickTimeout = null;
+            window.openStoryModal?.(story);
+          }, 250);
+        });
+        
         // 더블클릭 좋아요 기능
         overlayDiv.addEventListener('dblclick', async function(e) {
+          if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            clickTimeout = null;
+          }
           e.preventDefault();
           e.stopPropagation();
           

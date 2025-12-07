@@ -184,7 +184,37 @@ class StoryService:
             })
         return {"stories": stories_data}
     
-    # 4. 스토리 삭제
+    # 4. 스토리 수정
+    def update_story(self, story_id: int, story_data: dict):
+        cursor = self.db.get_cursor()
+        try:
+            updates = []
+            params = []
+            
+            if 'content' in story_data and story_data['content'] is not None:
+                updates.append("content = :1")
+                params.append(story_data['content'])
+            
+            if 'image_url' in story_data and story_data['image_url'] is not None:
+                updates.append(f"image_url = :{len(params) + 1}")
+                params.append(story_data['image_url'])
+            
+            if not updates:
+                return False
+            
+            params.append(story_id)
+            sql = f"UPDATE STORY SET {', '.join(updates)} WHERE story_id = :{len(params)}"
+            
+            cursor.execute(sql, params)
+            self.db.connection.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            print(f"Error updating story: {e}")
+            return False
+        finally:
+            cursor.close()
+    
+    # 5. 스토리 삭제
     def delete_story(self, story_id: int):
         cursor = self.db.get_cursor()
         try:

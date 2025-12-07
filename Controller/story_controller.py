@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from Service.story_service import StoryService
 from Enitity.Story.dto.story_create_dto import StoryCreateDto
+from Enitity.Story.dto.story_update_dto import StoryUpdateDto
 
 router = APIRouter(prefix="/stories", tags=["stories"])
 story_service = StoryService()
@@ -45,7 +46,15 @@ def get_user_stories(user_id: int):
     stories = story_service.get_stories_by_user(user_id)
     return story_service.format_stories_response(stories)
 
-# 4. 스토리 삭제 (DELETE /stories/{story_id})
+# 4. 스토리 수정 (PUT /stories/{story_id})
+@router.put("/{story_id}")
+def update_story(story_id: int, story_data: StoryUpdateDto):
+    result = story_service.update_story(story_id, story_data.model_dump(exclude_none=True))
+    if result:
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Story not found")
+
+# 5. 스토리 삭제 (DELETE /stories/{story_id})
 @router.delete("/{story_id}")
 def delete_story(story_id: int):
     result = story_service.delete_story(story_id)

@@ -81,8 +81,10 @@ export const storyAPI = {
     return response.data;
   },
   
-  updateStory: async (storyId, storyData) => {
-    const response = await api.put(`/stories/${storyId}`, storyData);
+  updateStory: async (storyId, content, imageUrl = null) => {
+    const data = { content };
+    if (imageUrl) data.image_url = imageUrl;
+    const response = await api.put(`/stories/${storyId}`, data);
     return response.data;
   },
   
@@ -111,6 +113,11 @@ export const likeAPI = {
   
   checkLikeStatus: async (userId, storyId) => {
     const response = await api.get(`/likes/check/${userId}/${storyId}`);
+    return response.data;
+  },
+  
+  getStoryLikes: async (storyId) => {
+    const response = await api.get(`/likes/story/${storyId}`);
     return response.data;
   }
 };
@@ -209,16 +216,6 @@ export const commentAPI = {
 export const tagAPI = {
   getAllTags: async () => {
     const response = await api.get('/tags');
-    return response.data;
-  },
-  
-  createTag: async (tagData) => {
-    const response = await api.post('/tags', tagData);
-    return response.data;
-  },
-  
-  getTagById: async (tagId) => {
-    const response = await api.get(`/tags/${tagId}`);
     return response.data;
   },
   

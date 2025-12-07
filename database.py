@@ -28,9 +28,13 @@ class DatabaseConnection:
             self.connection = None
 
     def get_cursor(self):
-        if not self.connection:
+        try:
+            if not self.connection or not self.connection.is_healthy():
+                self.connect()
+            return self.connection.cursor() if self.connection else None
+        except:
             self.connect()
-        return self.connection.cursor() if self.connection else None
+            return self.connection.cursor() if self.connection else None
 
 
 db_connection = DatabaseConnection()

@@ -4,6 +4,7 @@ import LoginModal from './LoginModal';
 import LeftSidebar from './LeftSidebar';
 import RightPanel from './RightPanel';
 import PlaceModal from './PlaceModal';
+import StoryModal from './StoryModal';
 
 function Main() {
   const [user, setUser] = useState(null);
@@ -19,6 +20,7 @@ function Main() {
   const [panelOpacity, setPanelOpacity] = useState(0.95);
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [selectedPlaceName, setSelectedPlaceName] = useState('');
+  const [selectedStory, setSelectedStory] = useState(null);
 
   const handleLogin = (user) => {
     setUser(user);
@@ -67,6 +69,11 @@ function Main() {
   window.openPlaceModal = (placeId, placeName) => {
     setSelectedPlaceId(placeId);
     setSelectedPlaceName(placeName);
+  };
+
+  // 스토리 모달 열기
+  window.openStoryModal = (story) => {
+    setSelectedStory(story);
   };
 
   // 장소 모달 닫을 때 장소 마커 새로고침
@@ -320,6 +327,14 @@ function Main() {
           placeId={selectedPlaceId}
           placeName={selectedPlaceName}
           onClose={handlePlaceModalClose}
+        />
+      )}
+
+      {/* 스토리 모달 */}
+      {selectedStory && (
+        <StoryModal
+          story={selectedStory}
+          onClose={() => setSelectedStory(null)}
         />
       )}
     </>

@@ -46,7 +46,11 @@ function StoryCard({ story, currentUser }) {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '10px'
+        marginBottom: '10px',
+        background: 'rgba(255, 255, 255, 0.9)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        backdropFilter: 'blur(10px)'
       }}>
         <strong>{story.user_name || '익명'}</strong>
         <small style={{ color: '#666' }}>
@@ -73,7 +77,11 @@ function StoryCard({ story, currentUser }) {
       <p style={{ 
         margin: '10px 0',
         lineHeight: '1.4',
-        wordBreak: 'break-word'
+        wordBreak: 'break-word',
+        background: 'rgba(255, 255, 255, 0.9)',
+        padding: '12px',
+        borderRadius: '8px',
+        backdropFilter: 'blur(10px)'
       }}>
         {story.content}
       </p>
@@ -82,7 +90,11 @@ function StoryCard({ story, currentUser }) {
       <div style={{
         fontSize: '12px',
         color: '#666',
-        marginBottom: '10px'
+        marginBottom: '10px',
+        background: 'rgba(255, 255, 255, 0.9)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        backdropFilter: 'blur(10px)'
       }}>
         📍 위도: {story.latitude?.toFixed(4)}, 경도: {story.longitude?.toFixed(4)}
       </div>
@@ -91,7 +103,11 @@ function StoryCard({ story, currentUser }) {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        background: 'rgba(255, 255, 255, 0.9)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        backdropFilter: 'blur(10px)'
       }}>
         <button
           onClick={handleLikeToggle}
