@@ -14,6 +14,7 @@ class TagService:
             self.db.connection.commit()
             return True
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating tag: {e}")
             return False
         finally:
@@ -58,6 +59,7 @@ class TagService:
             self.db.connection.commit()
             return True
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error adding story tag: {e}")
             return False
         finally:
@@ -72,6 +74,7 @@ class TagService:
             self.db.connection.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error removing story tag: {e}")
             return False
         finally:

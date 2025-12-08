@@ -17,6 +17,12 @@ class DatabaseConnection:
                 self.host, self.port, service_name=self.service_name
             )
             self.connection = oracledb.connect(user=self.username, password=self.password, dsn=dsn)
+            
+            # READ COMMITTED isolation level 설정
+            cursor = self.connection.cursor()
+            cursor.execute("ALTER SESSION SET ISOLATION_LEVEL = READ_COMMITTED")
+            cursor.close()
+            
             return self.connection
         except oracledb.Error as e:
             print(f"Database connection error: {e}")

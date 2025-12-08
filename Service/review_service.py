@@ -52,6 +52,7 @@ class ReviewService:
             
             return created_id
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating review: {e}")
             return None
         finally:
@@ -166,6 +167,7 @@ class ReviewService:
             self._update_place_rating(place_id)
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error updating review: {e}")
             return False
         finally:
@@ -188,6 +190,7 @@ class ReviewService:
             self._update_place_rating(place_id)
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error deleting review: {e}")
             return False
         finally:
