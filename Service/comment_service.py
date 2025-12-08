@@ -1,11 +1,10 @@
-from database import db_connection
 from Enitity.Comment_t.comment_t import Comment_t
 from datetime import datetime
 import oracledb
 
 class CommentService:
-    def __init__(self):
-        self.db = db_connection
+    def __init__(self, db: oracledb.Connection):
+        self.db = db
 
     # LOB 데이터 처리 헬퍼 (필수)
     def _get_value(self, val):
@@ -15,7 +14,7 @@ class CommentService:
 
     # 1. 댓글 작성
     def create_comment(self, comment_data: dict):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 INSERT INTO COMMENT_T (comment_id, user_id, review_id, content, created_at) 
@@ -29,7 +28,7 @@ class CommentService:
                 comment_data['content'],
                 comment_id_var
             ))
-            self.db.connection.commit()
+            self.db.commit()
             return comment_id_var.getvalue()[0]
         except Exception as e:
             self.db.connection.rollback()
@@ -40,7 +39,7 @@ class CommentService:
 
     # 2. 댓글 단건 조회
     def get_comment_by_id(self, comment_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # 명세서: user_name 필요
             sql = """
@@ -69,7 +68,7 @@ class CommentService:
 
     # 3. 리뷰별 댓글 목록 조회
     def get_comments_by_review(self, review_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 SELECT c.comment_id, c.content, c.created_at, c.user_id, u.name
@@ -99,7 +98,7 @@ class CommentService:
 
     # 4. 사용자별 댓글 목록 조회 (리뷰 제목 포함)
     def get_comments_by_user(self, user_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # REVIEW 테이블과 조인하여 review_title(r.title) 가져오기
             sql = """
@@ -136,11 +135,11 @@ class CommentService:
 
     # 5. 댓글 수정
     def update_comment(self, comment_id: int, content: str):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = "UPDATE COMMENT_T SET content = :1 WHERE comment_id = :2"
             cursor.execute(sql, (content, comment_id))
-            self.db.connection.commit()
+            self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
             self.db.connection.rollback()
@@ -151,11 +150,11 @@ class CommentService:
 
     # 6. 댓글 삭제
     def delete_comment(self, comment_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = "DELETE FROM COMMENT_T WHERE comment_id = :1"
             cursor.execute(sql, (comment_id,))
-            self.db.connection.commit()
+            self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
             self.db.connection.rollback()

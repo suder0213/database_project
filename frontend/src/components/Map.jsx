@@ -7,6 +7,9 @@ function Map({ user }) {
   const mapInitialized = useRef(false);
 
   useEffect(() => {
+
+    console.log("Current API Key:", process.env.REACT_APP_KAKAO_API_KEY);
+    
     // 카카오맵 SDK 동적 로딩
     const loadKakaoMapScript = () => {
       return new Promise((resolve, reject) => {

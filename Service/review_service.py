@@ -1,11 +1,10 @@
-from database import db_connection
 from Enitity.Review import Review, ReviewCreateDto, ReviewUpdateDto
 from datetime import datetime
 import oracledb
 
 class ReviewService:
-    def __init__(self):
-        self.db = db_connection
+    def __init__(self, db: oracledb.Connection):
+        self.db = db
     
     # [추가] LOB 객체일 경우 문자열로 변환해주는 헬퍼 함수
     def _get_value(self, val):
@@ -15,13 +14,13 @@ class ReviewService:
 
     # 헬퍼 함수: 장소 평점 업데이트
     def _update_place_rating(self, place_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """UPDATE PLACE SET average_rating = (
                         SELECT NVL(AVG(rating), 0) FROM REVIEW WHERE place_id = :1
                      ) WHERE place_id = :2"""
             cursor.execute(sql, (place_id, place_id))
-            self.db.connection.commit()
+            self.db.commit()
             print(f"Updated average rating for place {place_id}")
         except Exception as e:
             print(f"Error updating place rating: {e}")
@@ -32,7 +31,7 @@ class ReviewService:
 
     # 1. 리뷰 작성
     def create_review(self, review_data: dict):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 INSERT INTO REVIEW (review_id, user_id, place_id, title, content, rating, created_at) 
@@ -45,7 +44,7 @@ class ReviewService:
                 review_data['title'], review_data['content'],
                 review_data['rating'], review_id_var
             ))
-            self.db.connection.commit()
+            self.db.commit()
             
             created_id = review_id_var.getvalue()[0]
             self._update_place_rating(review_data['place_id'])
@@ -60,7 +59,7 @@ class ReviewService:
 
     # 2. 리뷰 단건 조회 (수정됨: _get_value 사용)
     def get_review_by_id(self, review_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 SELECT r.review_id, r.title, r.content, r.rating, r.created_at, u.name, p.name
@@ -90,7 +89,7 @@ class ReviewService:
 
     # 3. 장소별 리뷰 목록 (수정됨: _get_value 사용)
     def get_reviews_by_place(self, place_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 SELECT r.review_id, r.title, r.content, r.rating, r.created_at, r.user_id, u.name
@@ -119,7 +118,7 @@ class ReviewService:
 
     # 4. 사용자별 리뷰 목록 (수정됨: _get_value 사용, 좌표 추가)
     def get_reviews_by_user(self, user_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 SELECT r.review_id, r.title, r.content, r.rating, r.created_at, r.place_id, p.name, p.latitude, p.longitude
@@ -149,7 +148,7 @@ class ReviewService:
 
     # 5. 리뷰 수정
     def update_review(self, review_id: int, update_data: dict):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             check_sql = "SELECT place_id FROM REVIEW WHERE review_id = :1"
             cursor.execute(check_sql, (review_id,))
@@ -162,7 +161,7 @@ class ReviewService:
                 update_data['title'], update_data['content'], 
                 update_data['rating'], review_id
             ))
-            self.db.connection.commit()
+            self.db.commit()
             
             self._update_place_rating(place_id)
             return cursor.rowcount > 0
@@ -175,7 +174,7 @@ class ReviewService:
 
     # 6. 리뷰 삭제
     def delete_review(self, review_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             check_sql = "SELECT place_id FROM REVIEW WHERE review_id = :1"
             cursor.execute(check_sql, (review_id,))
@@ -185,7 +184,7 @@ class ReviewService:
 
             sql = "DELETE FROM REVIEW WHERE review_id = :1"
             cursor.execute(sql, (review_id,))
-            self.db.connection.commit()
+            self.db.commit()
             
             self._update_place_rating(place_id)
             return cursor.rowcount > 0

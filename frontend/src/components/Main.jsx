@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // useEffect 추가
 import Map from './Map';
 import LoginModal from './LoginModal';
 import LeftSidebar from './LeftSidebar';
@@ -9,8 +9,28 @@ import StoryCreate from './StoryCreate';
 import TagStories from './TagStories';
 
 function Main() {
-  const [user, setUser] = useState(null);
-  const [showLoginModal, setShowLoginModal] = useState(true);
+  // [수정 1] user 상태 초기화: 저장소에 정보가 있으면 불러오기
+  const [user, setUser] = useState(() => {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    const savedUserId = localStorage.getItem('userId');
+    const savedUserName = localStorage.getItem('userName');
+
+    if (isLoggedIn && savedUserId) {
+      return {
+        user_id: parseInt(savedUserId),
+        name: savedUserName,
+        // 필요하다면 id 등 다른 필드도 여기서 복구 가능
+      };
+    }
+    return null;
+  });
+
+  // [수정 2] 모달 표시 여부: 로그인이 되어있으면 모달 띄우지 않기
+  const [showLoginModal, setShowLoginModal] = useState(() => {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    return !isLoggedIn; // 로그인이 안 되어 있을 때만 true
+  });
+
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
   const [content, setContent] = useState('');

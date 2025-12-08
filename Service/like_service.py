@@ -1,10 +1,9 @@
-from database import db_connection
 from Enitity.Like_t import Like_t
 import oracledb
 
 class LikeService:
-    def __init__(self):
-        self.db = db_connection
+    def __init__(self, db: oracledb.Connection):
+        self.db = db
 
     def _get_value(self, val):
         if isinstance(val, oracledb.LOB):
@@ -13,7 +12,7 @@ class LikeService:
 
     # 1. 좋아요 토글 (수정됨: like_id 제거)
     def toggle_like(self, user_id: int, story_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # 1) 이미 좋아요가 있는지 확인 (user_id와 story_id로 식별)
             check_sql = "SELECT 1 FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
@@ -45,7 +44,7 @@ class LikeService:
             cursor.execute(count_sql, (story_id,))
             total_likes = cursor.fetchone()[0]
 
-            self.db.connection.commit()
+            self.db.commit()
             
             return {
                 "liked": liked, 
@@ -54,7 +53,7 @@ class LikeService:
 
         except Exception as e:
             print(f"Error toggling like: {e}")
-            self.db.connection.rollback()
+            self.db.rollback()
             return None
         finally:
             cursor.close()
