@@ -4,15 +4,28 @@
 
 ## 설치 및 실행
 
-### 1. 의존성 설치
+### 1. 데이터베이스 설정 (백엔드)
+`../database.py` 파일에서 Oracle DB 연결 정보를 수정하세요:
+```python
+self.host = "host.docker.internal"
+self.port = 1521
+self.service_name = "orcl"  # 실제 서비스명
+self.username = "team14_user"  # 실제 사용자명
+self.password = "team14_password"  # 실제 비밀번호
+```
+
+### 2. 의존성 설치
 ```bash
 npm install
 ```
 
-### 2. 카카오맵 API 키 설정
-`public/index.html` 파일에서 `YOUR_KAKAO_MAP_API_KEY`를 실제 API 키로 변경하세요.
+### 3. 카카오맵 API 키 설정
+프론트엔드 폴더에 `.env` 파일을 생성하고 카카오맵 API 키를 입력하세요:
+```
+REACT_APP_KAKAO_API_KEY=여기에_카카오맵_API_키_입력
+```
 
-### 3. 개발 서버 실행
+### 4. 개발 서버 실행
 ```bash
 npm start
 ```
