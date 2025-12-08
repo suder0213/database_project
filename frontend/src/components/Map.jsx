@@ -589,6 +589,9 @@ function Map({ user }) {
         }, 800);
       });
 
+      // 임시 마커 변수
+      let tempMarker = null;
+
       // 맵 클릭 이벤트 (새 스토리 작성)
       window.kakao.maps.event.addListener(map, 'click', function (mouseEvent) {
         // 마커 클릭인 경우 무시
@@ -603,6 +606,40 @@ function Map({ user }) {
 
         // 오른쪽 패널에 좌표 입력
         window.setLocationFromMap?.(latitude, longitude);
+
+        // 기존 임시 마커 제거
+        if (tempMarker) {
+          tempMarker.setMap(null);
+        }
+
+        // 새 임시 마커 생성
+        const tempMarkerDiv = document.createElement('div');
+        tempMarkerDiv.innerHTML = '🌟';
+        tempMarkerDiv.style.cssText = `
+          font-size: 50px;
+          filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.8));
+          animation: pulse 1s ease-in-out infinite;
+        `;
+        
+        if (!document.getElementById('temp-marker-animation')) {
+          const style = document.createElement('style');
+          style.id = 'temp-marker-animation';
+          style.textContent = `
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.2); opacity: 0.8; }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        tempMarker = new window.kakao.maps.CustomOverlay({
+          position: latlng,
+          content: tempMarkerDiv,
+          xAnchor: 0.5,
+          yAnchor: 1
+        });
+        tempMarker.setMap(map);
 
         // 지도 클릭으로 스토리 생성 기능 (주석처리)
         /*
@@ -1024,6 +1061,13 @@ function Map({ user }) {
       window.createPhotoMarker = createPhotoMarker;
       window.loadNearbyStories = loadNearbyStories;
       window.placeAPI = placeAPI;
+      window.tempMarker = tempMarker;
+      window.removeTempMarker = () => {
+        if (tempMarker) {
+          tempMarker.setMap(null);
+          tempMarker = null;
+        }
+      };
     };
 
     // 카카오맵 초기화 시작
