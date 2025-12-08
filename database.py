@@ -4,11 +4,11 @@ from typing import Optional
 
 class DatabaseConnection:
     def __init__(self):
-        self.host = "192.168.0.2"
+        self.host = "host.docker.internal"
         self.port = 1521
-        self.service_name = "xe"
-        self.username = "system"  # 실제 사용자명으로 변경
-        self.password = "your_password"  # 실제 비밀번호로 변경
+        self.service_name = "orcl"
+        self.username = "team14_user"  # 실제 사용자명으로 변경
+        self.password = "team14_password"  # 실제 비밀번호로 변경
         self.connection: Optional[oracledb.Connection] = None
 
     def connect(self):
