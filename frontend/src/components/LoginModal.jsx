@@ -3,14 +3,24 @@ import { saveAuthData } from '../utils/auth';
 import { authAPI } from '../services/api';
 
 function LoginModal({ isOpen, onClose, onLogin }) {
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loginForm, setLoginForm] = useState({ id: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({
+    id: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
+    email: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
     
     if (!loginForm.id || !loginForm.password) {
-      alert('아이디와 비밀번호를 입력해주세요.');
+      setError('아이디와 비밀번호를 입력해주세요.');
       return;
     }
 
@@ -19,24 +29,53 @@ function LoginModal({ isOpen, onClose, onLogin }) {
       const response = await authAPI.login(loginForm.id, loginForm.password);
       
       if (response.user_id) {
-        // 사용자 정보 조회
-        const userInfo = await fetch(`/users/${response.user_id}`);
-        const userData = await userInfo.json();
-        
         saveAuthData({
-          user_id: userData.user_id,
-          id: userData.id,
-          name: userData.name
+          user_id: response.user_id,
+          id: loginForm.id,
+          name: response.name || loginForm.id
         });
-        onLogin(userData);
+        onLogin({ user_id: response.user_id, id: loginForm.id, name: response.name });
         setLoginForm({ id: '', password: '' });
-        alert('로그인 성공! 환영합니다 🎉');
       } else {
-        alert(response.message || '로그인 실패!');
+        setError(response.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('로그인 중 오류가 발생했습니다.');
+      setError('올바른 아이디와 비밀번호를 입력하세요.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authAPI.register({
+        id: registerForm.id,
+        password: registerForm.password,
+        name: registerForm.name,
+        email: registerForm.email
+      });
+      
+      if (response.success) {
+        setError('');
+        setIsRegisterMode(false);
+        setRegisterForm({ id: '', password: '', confirmPassword: '', name: '', email: '' });
+        setError('✅ 회원가입이 완료되었습니다! 로그인해주세요.');
+      } else {
+        setError(response.message || '회원가입에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Register error:', error);
+      setError('회원가입 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -285,50 +324,182 @@ function LoginModal({ isOpen, onClose, onLogin }) {
           }}>지도에서 나만의 스토리를 공유해보세요</p>
         </div>
         
-        <form onSubmit={handleLogin}>
-          <div style={{ marginBottom: '16px' }}>
-            <input
-              className="modal-input"
-              type="text"
-              placeholder="아이디"
-              value={loginForm.id}
-              onChange={(e) => setLoginForm({...loginForm, id: e.target.value})}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '1px solid #dbdbdb',
-                borderRadius: '8px',
-                fontSize: '14px',
-                backgroundColor: '#fafafa',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#0095f6'}
-              onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
-            />
+        {error && (
+          <div style={{
+            padding: '12px',
+            marginBottom: '16px',
+            backgroundColor: error.includes('✅') ? '#d4edda' : '#f8d7da',
+            color: error.includes('✅') ? '#155724' : '#721c24',
+            borderRadius: '8px',
+            fontSize: '13px',
+            border: `1px solid ${error.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`,
+            textAlign: 'center'
+          }}>
+            {error}
           </div>
-          
-          <div style={{ marginBottom: '24px' }}>
-            <input
-              className="modal-input"
-              type="password"
-              placeholder="비밀번호"
-              value={loginForm.password}
-              onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                border: '1px solid #dbdbdb',
-                borderRadius: '8px',
-                fontSize: '14px',
-                backgroundColor: '#fafafa',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#0095f6'}
-              onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
-            />
-          </div>
+        )}
+        
+        <form onSubmit={isRegisterMode ? handleRegister : handleLogin}>
+          {!isRegisterMode ? (
+            <>
+              <div style={{ marginBottom: '16px' }}>
+                <input
+                  className="modal-input"
+                  type="text"
+                  placeholder="아이디"
+                  value={loginForm.id}
+                  onChange={(e) => setLoginForm({...loginForm, id: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+              
+              <div style={{ marginBottom: '24px' }}>
+                <input
+                  className="modal-input"
+                  type="password"
+                  placeholder="비밀번호"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  className="modal-input"
+                  type="text"
+                  placeholder="아이디"
+                  value={registerForm.id}
+                  onChange={(e) => setRegisterForm({...registerForm, id: e.target.value})}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  className="modal-input"
+                  type="password"
+                  placeholder="비밀번호"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  className="modal-input"
+                  type="password"
+                  placeholder="비밀번호 확인"
+                  value={registerForm.confirmPassword}
+                  onChange={(e) => setRegisterForm({...registerForm, confirmPassword: e.target.value})}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <input
+                  className="modal-input"
+                  type="text"
+                  placeholder="이름"
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({...registerForm, name: e.target.value})}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <input
+                  className="modal-input"
+                  type="email"
+                  placeholder="이메일"
+                  value={registerForm.email}
+                  onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: '1px solid #dbdbdb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    backgroundColor: '#fafafa',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#0095f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#dbdbdb'}
+                />
+              </div>
+            </>
+          )}
           
           <button
             className="modal-button"
@@ -348,23 +519,48 @@ function LoginModal({ isOpen, onClose, onLogin }) {
               opacity: isLoading ? 0.7 : 1
             }}
           >
-            {isLoading ? '로그인 중...' : '로그인'}
+            {isLoading ? (isRegisterMode ? '가입 중...' : '로그인 중...') : (isRegisterMode ? '회원가입' : '로그인')}
           </button>
         </form>
         
-        <div className="test-account" style={{
-          textAlign: 'center',
-          marginTop: '24px',
-          padding: '12px',
-          backgroundColor: '#e3f2fd',
-          borderRadius: '8px',
-          fontSize: '12px',
-          color: '#1976d2',
-          border: '1px solid #bbdefb'
-        }}>
-          🔑 <strong>DB 계정으로 로그인 가능</strong><br/>
-          예: gimsoi2 / 1234
+        <div style={{ textAlign: 'center', marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              setError('');
+              setIsRegisterMode(!isRegisterMode);
+              setLoginForm({ id: '', password: '' });
+              setRegisterForm({ id: '', password: '', confirmPassword: '', name: '', email: '' });
+            }}
+            style={{
+              background: 'linear-gradient(45deg, rgba(240, 148, 51, 0.3), rgba(230, 104, 60, 0.3), rgba(220, 39, 67, 0.3), rgba(204, 35, 102, 0.3), rgba(188, 24, 136, 0.3))',
+              border: '1px solid rgba(240, 148, 51, 0.5)',
+              color: 'white',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 2px 8px rgba(240, 148, 51, 0.2)',
+              backdropFilter: 'blur(10px)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'linear-gradient(45deg, rgba(240, 148, 51, 0.5), rgba(230, 104, 60, 0.5), rgba(220, 39, 67, 0.5), rgba(204, 35, 102, 0.5), rgba(188, 24, 136, 0.5))';
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 4px 12px rgba(240, 148, 51, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'linear-gradient(45deg, rgba(240, 148, 51, 0.3), rgba(230, 104, 60, 0.3), rgba(220, 39, 67, 0.3), rgba(204, 35, 102, 0.3), rgba(188, 24, 136, 0.3))';
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 2px 8px rgba(240, 148, 51, 0.2)';
+            }}
+          >
+            {isRegisterMode ? '← 로그인으로 돌아가기' : '✨ 회원가입하기'}
+          </button>
         </div>
+        
+
       </div>
     </div>
   );

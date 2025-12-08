@@ -31,8 +31,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // 인증 실패 시 로그아웃
+    // 로그인/회원가입 요청은 401 에러 시 새로고침하지 않음
+    const isAuthRequest = error.config?.url?.includes('/users/login') || error.config?.url?.includes('/users/register');
+    
+    if (error.response?.status === 401 && !isAuthRequest) {
+      // 인증 실패 시 로그아웃 (로그인 요청 제외)
       localStorage.removeItem('user_id');
       localStorage.removeItem('user');
       window.location.reload();

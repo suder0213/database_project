@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { storyAPI } from '../services/api';
 import { getUserId } from '../utils/auth';
+import toast from '../utils/toast';
 
 function RightPanel({
   showPanel,
@@ -22,11 +23,11 @@ function RightPanel({
 
   const handleCreateStory = async () => {
     if (!lat || !lng || !content) {
-      alert('위도, 경도, 내용을 모두 입력해주세요.');
+      toast.warning('위도, 경도, 내용을 모두 입력해주세요.');
       return;
     }
     if (!user) {
-      alert('로그인이 필요합니다.');
+      toast.info('로그인이 필요합니다.');
       setShowLoginModal(true);
       return;
     }
@@ -37,7 +38,7 @@ function RightPanel({
       
       // 테스트 계정인 경우 가짜 성공
       if (userId === '999') {
-        alert('스토리가 작성되었습니다! (테스트 모드)');
+        toast.success('스토리가 작성되었습니다! (테스트 모드)');
         setLat('');
         setLng('');
         setContent('');

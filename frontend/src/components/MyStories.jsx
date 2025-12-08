@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { storyAPI } from '../services/api';
 import { getUserId } from '../utils/auth';
 import StoryModal from './StoryModal';
+import toast from '../utils/toast';
 
 function MyStories({ onClose, onMoveToLocation }) {
   const [stories, setStories] = useState([]);
@@ -70,9 +71,10 @@ function MyStories({ onClose, onMoveToLocation }) {
       await storyAPI.updateStory(editingStory.story_id, editContent, finalImageUrl || null);
       setStories(stories.map(s => s.story_id === editingStory.story_id ? {...s, content: editContent, image_url: finalImageUrl} : s));
       setEditingStory(null);
+      toast.success('스토리가 수정되었습니다.');
     } catch (error) {
       console.error('Update error:', error);
-      alert('수정에 실패했습니다.');
+      toast.error('수정에 실패했습니다.');
     }
   };
 
