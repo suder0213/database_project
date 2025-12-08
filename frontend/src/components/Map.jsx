@@ -216,20 +216,10 @@ function Map({ user }) {
                 font-size: 14px;
                 color: #666;
               ">
-                <span id="like-count-${story.story_id}">❤️ ${likes}</span>
+                <span>❤️ ${likes}</span>
                 <span style="font-size: 12px;">${createdAt}</span>
               </div>
             </div>
-            <div id="like-animation-${story.story_id}" style="
-              position: absolute;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              font-size: 80px;
-              opacity: 0;
-              pointer-events: none;
-              z-index: 10;
-            ">❤️</div>
           </div>
           <div style="
             position: absolute;
@@ -245,103 +235,11 @@ function Map({ user }) {
         `;
         
         // 클릭 모달 열기
-        let clickTimeout;
         overlayDiv.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
-          
-          if (clickTimeout) {
-            clearTimeout(clickTimeout);
-            clickTimeout = null;
-            return;
-          }
-          
-          clickTimeout = setTimeout(() => {
-            clickTimeout = null;
-            window.openStoryModal?.(story);
-          }, 250);
+          window.openStoryModal?.(story);
         });
-        
-        // 더블클릭 좋아요 기능
-        overlayDiv.addEventListener('dblclick', async function(e) {
-          if (clickTimeout) {
-            clearTimeout(clickTimeout);
-            clickTimeout = null;
-          }
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // 테스트 마커는 좋아요 기능 비활성화
-          if (story.story_id === 999) {
-            console.log('테스트 마커는 좋아요를 지원하지 않습니다.');
-            return;
-          }
-          
-          const userId = localStorage.getItem('user_id');
-          if (!userId) {
-            alert('로그인이 필요합니다.');
-            return;
-          }
-          
-          try {
-            console.log('좋아요 요청:', { story_id: story.story_id, user_id: userId });
-            const response = await likeAPI.toggleLike(story.story_id);
-            console.log('좋아요 응답:', response);
-            
-            if (response.success) {
-              // 좋아요 수 업데이트
-              const likeCountEl = document.getElementById(`like-count-${story.story_id}`);
-              if (likeCountEl) {
-                likeCountEl.textContent = `❤️ ${response.total_likes}`;
-              }
-              
-              // 하트 애니메이션 (좋아요/취소에 따라 다른 애니메이션)
-              const heartAnim = document.getElementById(`like-animation-${story.story_id}`);
-              if (heartAnim) {
-                if (response.liked) {
-                  // 좋아요 추가: 하트 터지기
-                  heartAnim.textContent = '❤️';
-                  heartAnim.style.animation = 'heartBurst 0.6s ease-out';
-                } else {
-                  // 좋아요 취소: 깨진 하트
-                  heartAnim.textContent = '💔';
-                  heartAnim.style.animation = 'heartBreak 0.6s ease-out';
-                }
-                heartAnim.style.opacity = '1';
-                setTimeout(() => {
-                  heartAnim.style.opacity = '0';
-                  heartAnim.style.animation = '';
-                }, 600);
-              }
-            }
-          } catch (error) {
-            console.error('좋아요 실패:', error);
-            console.error('에러 상세:', error.response?.data);
-            console.error('에러 상태:', error.response?.status);
-            alert('좋아요 처리에 실패했습니다: ' + (error.response?.data?.detail || error.message));
-          }
-        });
-        
-        // 애니메이션 CSS 추가
-        if (!document.getElementById('heart-animation-style')) {
-          const style = document.createElement('style');
-          style.id = 'heart-animation-style';
-          style.textContent = `
-            @keyframes heartBurst {
-              0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-              50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-              100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
-            }
-            @keyframes heartBreak {
-              0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-              25% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); opacity: 1; }
-              50% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 0.8; }
-              75% { transform: translate(-50%, -50%) scale(0.9) rotate(-5deg); opacity: 0.5; }
-              100% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 0; }
-            }
-          `;
-          document.head.appendChild(style);
-        }
         
         return overlayDiv;
       };
@@ -614,10 +512,10 @@ function Map({ user }) {
 
         // 새 임시 마커 생성
         const tempMarkerDiv = document.createElement('div');
-        tempMarkerDiv.innerHTML = '🌟';
+        tempMarkerDiv.innerHTML = '🎯';
         tempMarkerDiv.style.cssText = `
           font-size: 50px;
-          filter: drop-shadow(0 4px 8px rgba(255, 215, 0, 0.8));
+          filter: drop-shadow(0 4px 8px rgba(255, 0, 0, 0.6));
           animation: pulse 1s ease-in-out infinite;
         `;
         
@@ -854,12 +752,37 @@ function Map({ user }) {
         this.innerHTML = placeMarkersVisible ? '📍 장소 끄기' : '📍 장소 켜기';
       });
       
-      // 전체 오버레이 토글 버튼 생성
-      const toggleButton = document.createElement('button');
-      toggleButton.innerHTML = '💬 스토리 카드 끄기';
-      toggleButton.style.cssText = `
+      // 스토리 카드 켜기 버튼
+      const showCardsButton = document.createElement('button');
+      showCardsButton.innerHTML = '💬 카드 보기';
+      showCardsButton.style.cssText = `
         position: absolute;
         top: 160px;
+        left: 10px;
+        z-index: 1000;
+        background: linear-gradient(45deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 25px;
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s;
+      `;
+      
+      showCardsButton.addEventListener('click', function() {
+        overlaysVisible = true;
+        allOverlays.forEach(overlay => overlay.setMap(map));
+      });
+      
+      // 스토리 카드 끄기 버튼
+      const hideCardsButton = document.createElement('button');
+      hideCardsButton.innerHTML = '🚫 카드 숨기기';
+      hideCardsButton.style.cssText = `
+        position: absolute;
+        top: 210px;
         left: 10px;
         z-index: 1000;
         background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
@@ -871,42 +794,12 @@ function Map({ user }) {
         cursor: pointer;
         font-size: 13px;
         font-weight: 600;
-        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        transform: scale(1);
+        transition: all 0.3s;
       `;
-
-      // 버튼 호버 이벤트
-      toggleButton.addEventListener('mouseenter', function () {
-        this.style.transform = 'scale(1.05) translateY(-2px)';
-        this.style.boxShadow = '0 8px 25px rgba(240, 148, 51, 0.5)';
-      });
-
-      toggleButton.addEventListener('mouseleave', function () {
-        this.style.transform = 'scale(1) translateY(0)';
-        this.style.boxShadow = '0 4px 15px rgba(240, 148, 51, 0.3)';
-      });
-
-      // 버튼 클릭 이벤트
-      toggleButton.addEventListener('click', function () {
-        // 클릭 애니메이션
-        this.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-          this.style.transform = 'scale(1.05) translateY(-2px)';
-        }, 100);
-
-        overlaysVisible = !overlaysVisible;
-
-        // 스토리 카드 토글 (즉시 처리)
-        allOverlays.forEach((overlay) => {
-          overlay.setMap(overlaysVisible ? map : null);
-        });
-
-        // 버튼 텍스트 변경 애니메이션
-        this.style.opacity = '0.7';
-        setTimeout(() => {
-          toggleButton.innerHTML = overlaysVisible ? '💬 스토리 카드 끄기' : '💬 스토리 카드 켜기';
-          this.style.opacity = '1';
-        }, 150);
+      
+      hideCardsButton.addEventListener('click', function() {
+        overlaysVisible = false;
+        allOverlays.forEach(overlay => overlay.setMap(null));
       });
 
       // CSS 애니메이션 추가
@@ -928,7 +821,8 @@ function Map({ user }) {
       // 버튼을 맵 컨테이너에 추가
       container.parentElement.appendChild(storyMarkerButton);
       container.parentElement.appendChild(placeMarkerButton);
-      container.parentElement.appendChild(toggleButton);
+      container.parentElement.appendChild(showCardsButton);
+      container.parentElement.appendChild(hideCardsButton);
 
       // 지도 타입 변경 기능
       let currentTypeId = null;
@@ -970,7 +864,7 @@ function Map({ user }) {
       const buttonContainer = document.createElement('div');
       buttonContainer.style.cssText = `
         position: absolute;
-        top: 220px;
+        top: 270px;
         left: 10px;
         z-index: 1000;
         display: flex;

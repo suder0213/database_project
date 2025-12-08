@@ -119,6 +119,7 @@ class StatsService:
         try:
             cursor.execute("SELECT NVL(AVG(RATING), 0) FROM REVIEW")
             avg_rating = cursor.fetchone()[0] or 0
+            min_rating = float(avg_rating) + threshold
             
             cursor.execute("""
                 SELECT r.REVIEW_ID, r.TITLE, r.CONTENT, r.RATING, p.NAME as place_name, r.CREATED_AT
@@ -126,7 +127,7 @@ class StatsService:
                 JOIN PLACE p ON r.PLACE_ID = p.PLACE_ID
                 WHERE r.RATING > :1
                 ORDER BY r.RATING DESC, r.CREATED_AT DESC
-            """, (threshold,))
+            """, (min_rating,))
             
             reviews = []
             for row in cursor:

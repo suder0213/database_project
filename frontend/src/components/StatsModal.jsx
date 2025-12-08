@@ -9,6 +9,7 @@ function StatsModal({ onClose, onMoveToLocation }) {
   const [placeInput, setPlaceInput] = useState('');
   const [placeSuggestions, setPlaceSuggestions] = useState([]);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [avgRating, setAvgRating] = useState(null);
 
   const handlePlaceSearch = async (query) => {
     if (!query || query.length < 1) {
@@ -20,6 +21,15 @@ function StatsModal({ onClose, onMoveToLocation }) {
       setPlaceSuggestions(response.places || []);
     } catch (error) {
       console.error('장소 검색 실패:', error);
+    }
+  };
+
+  const loadAverageRating = async () => {
+    try {
+      const response = await statsAPI.getExcellentReviews(0);
+      setAvgRating(response.average_rating || null);
+    } catch (error) {
+      console.error('평균 평점 불러오기 실패:', error);
     }
   };
 
@@ -51,6 +61,7 @@ function StatsModal({ onClose, onMoveToLocation }) {
           const minExcellent = searchInput && !isNaN(parseFloat(searchInput)) ? parseFloat(searchInput) : 0;
           response = await statsAPI.getExcellentReviews(minExcellent);
           setResults(response.reviews || []);
+          setAvgRating(response.average_rating || null);
           break;
         case 'byRating':
           if (!searchInput || !searchInput.trim() || isNaN(parseFloat(searchInput))) {
@@ -280,7 +291,7 @@ function StatsModal({ onClose, onMoveToLocation }) {
                 fontWeight: '600',
                 boxShadow: activeTab === 'placeReviews' ? '0 4px 12px rgba(102, 126, 234, 0.3)' : 'none'
               }}>📍 장소별 리뷰</button>
-              <button onClick={() => { setActiveTab('excellent'); setResults([]); setSearchInput(''); }} style={{
+              <button onClick={() => { setActiveTab('excellent'); setResults([]); setSearchInput(''); loadAverageRating(); }} style={{
                 padding: '8px 16px',
                 background: activeTab === 'excellent' ? 'linear-gradient(45deg, #667eea, #764ba2)' : '#f0f0f0',
                 color: activeTab === 'excellent' ? 'white' : '#333',
@@ -384,6 +395,11 @@ function StatsModal({ onClose, onMoveToLocation }) {
             <div style={{ marginBottom: '20px' }}>
               {activeTab === 'excellent' && (
                 <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+                  {avgRating !== null && (
+                    <div style={{ marginBottom: '6px', fontWeight: '700', color: '#667eea', fontSize: '14px' }}>
+                      ⭐ 전체 리뷰 평균 평점: {avgRating.toFixed(2)}점
+                    </div>
+                  )}
                   💡 "전체 리뷰의 평균 평점 + 입력한 값"보다 높은 리뷰만 표시됩니다
                 </div>
               )}
