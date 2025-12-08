@@ -5,6 +5,8 @@ import LeftSidebar from './LeftSidebar';
 import RightPanel from './RightPanel';
 import PlaceModal from './PlaceModal';
 import StoryModal from './StoryModal';
+import StoryCreate from './StoryCreate';
+import TagStories from './TagStories';
 
 function Main() {
   const [user, setUser] = useState(null);
@@ -21,6 +23,12 @@ function Main() {
   const [selectedPlaceId, setSelectedPlaceId] = useState(null);
   const [selectedPlaceName, setSelectedPlaceName] = useState('');
   const [selectedStory, setSelectedStory] = useState(null);
+  const [showStoryCreate, setShowStoryCreate] = useState(false);
+  const [storyCreateLat, setStoryCreateLat] = useState('');
+  const [storyCreateLng, setStoryCreateLng] = useState('');
+  const [showTagStories, setShowTagStories] = useState(false);
+  const [selectedTagId, setSelectedTagId] = useState(null);
+  const [selectedTagName, setSelectedTagName] = useState('');
 
   const handleLogin = (user) => {
     setUser(user);
@@ -74,6 +82,20 @@ function Main() {
   // 스토리 모달 열기
   window.openStoryModal = (story) => {
     setSelectedStory(story);
+  };
+
+  // 스토리 생성 모달 열기
+  window.openStoryCreateModal = (latitude, longitude) => {
+    setStoryCreateLat(parseFloat(latitude));
+    setStoryCreateLng(parseFloat(longitude));
+    setShowStoryCreate(true);
+  };
+
+  // 태그 스토리 모달 열기
+  window.openTagStoriesModal = (tagId, tagName) => {
+    setSelectedTagId(tagId);
+    setSelectedTagName(tagName);
+    setShowTagStories(true);
   };
 
   // 장소 모달 닫을 때 장소 마커 새로고침
@@ -336,6 +358,28 @@ function Main() {
         <StoryModal
           story={selectedStory}
           onClose={() => setSelectedStory(null)}
+        />
+      )}
+
+      {/* 스토리 생성 모달 */}
+      {showStoryCreate && (
+        <StoryCreate
+          latitude={storyCreateLat}
+          longitude={storyCreateLng}
+          onClose={() => setShowStoryCreate(false)}
+          onSuccess={() => {
+            window.loadNearbyStories?.();
+          }}
+        />
+      )}
+
+      {/* 태그 스토리 모달 */}
+      {showTagStories && (
+        <TagStories
+          tagId={selectedTagId}
+          tagName={selectedTagName}
+          onClose={() => setShowTagStories(false)}
+          onMoveToLocation={(lat, lng) => window.moveMapToLocation?.(lat, lng)}
         />
       )}
     </>

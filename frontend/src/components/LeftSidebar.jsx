@@ -214,17 +214,9 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
               {filteredTags.map((tag) => (
                 <div
                   key={tag.tag_id}
-                  onClick={async () => {
-                    try {
-                      const response = await tagAPI.getTagStories(tag.tag_id);
-                      console.log(`#${tag.name} 태그 전체 응답:`, response);
-                      console.log('story_ids:', response.story_ids);
-                      const count = response.story_ids?.length || 0;
-                      alert(`#${tag.name} 태그의 스토리 ${count}개 발견!`);
-                      setTagSearch('');
-                    } catch (error) {
-                      console.error('태그 스토리 검색 실패:', error);
-                    }
+                  onClick={() => {
+                    window.openTagStoriesModal?.(tag.tag_id, tag.name);
+                    setTagSearch('');
                   }}
                   style={{
                     padding: '8px 12px',

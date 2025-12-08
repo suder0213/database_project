@@ -634,37 +634,16 @@ function Map({ user }) {
       
       setTimeout(() => loadNearbyPlaces(), 500);
 
-      // 지도 이동 시 스토리/장소 로드 (최적화)
+      // 지도 이동 시 스토리/장소 로드
       let idleTimeout;
       let isLoading = false;
-      let lastBounds = null;
       
       window.kakao.maps.event.addListener(map, 'idle', function() {
         if (isLoading) return;
         
-        // 영역 변화 확인 (적은 이동은 무시)
-        const currentBounds = map.getBounds();
-        if (lastBounds) {
-          const swLat = currentBounds.getSouthWest().getLat();
-          const swLng = currentBounds.getSouthWest().getLng();
-          const neLat = currentBounds.getNorthEast().getLat();
-          const neLng = currentBounds.getNorthEast().getLng();
-          
-          const lastSwLat = lastBounds.getSouthWest().getLat();
-          const lastSwLng = lastBounds.getSouthWest().getLng();
-          const lastNeLat = lastBounds.getNorthEast().getLat();
-          const lastNeLng = lastBounds.getNorthEast().getLng();
-          
-          // 30% 이상 이동했을 때만 로드
-          const latDiff = Math.abs(swLat - lastSwLat) / Math.abs(lastNeLat - lastSwLat);
-          const lngDiff = Math.abs(swLng - lastSwLng) / Math.abs(lastNeLng - lastSwLng);
-          if (latDiff < 0.3 && lngDiff < 0.3) return;
-        }
-        
         clearTimeout(idleTimeout);
         idleTimeout = setTimeout(() => {
           isLoading = true;
-          lastBounds = map.getBounds();
           Promise.all([loadNearbyStories(), loadNearbyPlaces()]).finally(() => {
             setTimeout(() => { isLoading = false; }, 500);
           });
