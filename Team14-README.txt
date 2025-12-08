@@ -35,14 +35,17 @@ Team 14 Database Project - 실행 방법
    docker system prune -f
    docker-compose up --build
 
-=== 로그 확인 방법 ===
-   전체 로그: docker-compose logs
-   실시간 로그: docker-compose logs -f
-   백엔드만: docker-compose logs -f backend
-   프론트엔드만: docker-compose logs -f frontend
-
 === 주의사항 ===
 - Oracle DB가 미리 실행되어 있어야 함
 - 필요한 테이블들이 생성되어 있어야 함
-- 테이블명은 대문자 사용: USER_T, PLACE, REVIEW, STORY, COMMENT_T, LIKE_T, TAG, STORY_TAG
+    ( Team14-Phase2-1-remake-on-Phase3.sql,
+    Team14-Phase2-2-remake-on-Phase3.sql
+    미리 실행해야 함 )
 - 백엔드(8000포트)와 프론트엔드(3000포트) 모두 정상 실행되어야 함
+
+
+=== 웹 사용 방법 및 기능 설명 ===
+
+1. 웹 브라우저 http://localhost:3000 으로 접속합니다.
+2. 회원가입을 통해 USER_T에 등록합니다.
+3. 로그인을 통해 접속합니다.
