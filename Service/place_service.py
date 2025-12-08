@@ -16,6 +16,7 @@ class PlaceService:
             self.db.connection.commit()
             return True
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating place: {e}")
             return False
         finally:
@@ -32,6 +33,7 @@ class PlaceService:
             self.db.connection.commit()
             return place_id_var.getvalue()[0]
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating place: {e}")
             return None
         finally:
@@ -126,6 +128,7 @@ class PlaceService:
             self.db.connection.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error updating place: {e}")
             return False
         finally:
@@ -140,6 +143,7 @@ class PlaceService:
             self.db.connection.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error deleting place: {e}")
             return False
         finally:
@@ -156,6 +160,7 @@ class PlaceService:
             self.db.connection.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error updating average rating: {e}")
             return False
         finally:
