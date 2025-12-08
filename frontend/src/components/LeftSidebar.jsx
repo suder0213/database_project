@@ -3,21 +3,44 @@ import UserProfile from './UserProfile';
 import MyStories from './MyStories';
 import MyReviews from './MyReviews';
 import MyLikes from './MyLikes';
+import StatsModal from './StatsModal';
 import { checkAuthStatus } from '../utils/auth';
-import { tagAPI } from '../services/api';
+import { tagAPI, statsAPI } from '../services/api';
 
 function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOpacity, onMoveToLocation }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showMyStories, setShowMyStories] = useState(false);
   const [showMyReviews, setShowMyReviews] = useState(false);
   const [showMyLikes, setShowMyLikes] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [allTags, setAllTags] = useState([]);
   const [tagSearch, setTagSearch] = useState('');
+  const [userStats, setUserStats] = useState(null);
   const isLoggedIn = checkAuthStatus();
 
   useEffect(() => {
     loadAllTags();
-  }, []);
+    if (isLoggedIn) {
+      loadUserStats();
+    }
+
+    // 리뷰 작성 이벤트 리스너
+    const handleReviewCreated = () => {
+      loadUserStats();
+    };
+    // 스토리 작성/삭제 이벤트 리스너
+    const handleStoryChanged = () => {
+      loadUserStats();
+    };
+    
+    window.addEventListener('reviewCreated', handleReviewCreated);
+    window.addEventListener('storyChanged', handleStoryChanged);
+
+    return () => {
+      window.removeEventListener('reviewCreated', handleReviewCreated);
+      window.removeEventListener('storyChanged', handleStoryChanged);
+    };
+  }, [isLoggedIn]);
 
   const loadAllTags = async () => {
     try {
@@ -25,6 +48,18 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
       setAllTags(response.tags || []);
     } catch (error) {
       console.error('태그 불러오기 실패:', error);
+    }
+  };
+
+  const loadUserStats = async () => {
+    try {
+      const userId = localStorage.getItem('user_id');
+      if (userId) {
+        const response = await statsAPI.getUserStats(userId);
+        setUserStats(response);
+      }
+    } catch (error) {
+      console.error('사용자 통계 불러오기 실패:', error);
     }
   };
 
@@ -94,75 +129,202 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
         💡 마커를 클릭하면 스토리 카드를 볼 수 있어요!
       </div>
 
+      {isLoggedIn && userStats && (
+        <div style={{
+          marginTop: '16px',
+          padding: '16px',
+          background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+          borderRadius: '12px',
+          border: '2px solid rgba(102, 126, 234, 0.3)',
+          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.1)'
+        }}>
+          <h3 style={{
+            margin: '0 0 12px 0',
+            fontSize: '16px',
+            fontWeight: '700',
+            color: '#667eea',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            📊 내 활동 요약
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '8px 12px',
+              background: 'rgba(255, 255, 255, 0.7)',
+              borderRadius: '8px'
+            }}>
+              <span style={{ fontSize: '14px', color: '#555', fontWeight: '600' }}>📖 작성한 스토리</span>
+              <span style={{ fontSize: '16px', fontWeight: '700', color: '#667eea' }}>{userStats.story_count || 0}개</span>
+            </div>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '8px 12px',
+              background: 'rgba(255, 255, 255, 0.7)',
+              borderRadius: '8px'
+            }}>
+              <span style={{ fontSize: '14px', color: '#555', fontWeight: '600' }}>⭐ 평균 리뷰 평점</span>
+              <span style={{ fontSize: '16px', fontWeight: '700', color: '#ffd700' }}>
+                {userStats.average_review_rating && userStats.average_review_rating > 0 ? userStats.average_review_rating.toFixed(1) : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isLoggedIn && (
         <div style={{
           marginTop: '24px',
-          display: 'flex',
-          flexDirection: 'column',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
           gap: '12px'
         }}>
           <button
             onClick={() => setShowProfile(true)}
             style={{
-              padding: '12px 16px',
-              backgroundColor: '#007bff',
+              padding: '20px 12px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
+              fontSize: '15px',
+              fontWeight: '700',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              transition: 'all 0.3s ease',
+              transform: 'translateY(0)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px) scale(1.05) rotate(-2deg)';
+              e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0) scale(1) rotate(0deg)';
+              e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
             }}
           >
-            👤 내 프로필
+            👤 프로필
           </button>
           <button
             onClick={() => setShowMyStories(true)}
             style={{
-              padding: '12px 16px',
-              backgroundColor: '#28a745',
+              padding: '20px 12px',
+              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
+              fontSize: '15px',
+              fontWeight: '700',
+              boxShadow: '0 4px 15px rgba(17, 153, 142, 0.3)',
+              transition: 'all 0.3s ease',
+              transform: 'translateY(0)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px) scale(1.05) rotate(2deg)';
+              e.target.style.boxShadow = '0 8px 25px rgba(17, 153, 142, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0) scale(1) rotate(0deg)';
+              e.target.style.boxShadow = '0 4px 15px rgba(17, 153, 142, 0.3)';
             }}
           >
-            📖 내 스토리
+            📖 작성한 스토리
           </button>
           <button
             onClick={() => setShowMyReviews(true)}
             style={{
-              padding: '12px 16px',
-              backgroundColor: '#ffc107',
+              padding: '20px 12px',
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
+              fontSize: '15px',
+              fontWeight: '700',
+              boxShadow: '0 4px 15px rgba(240, 147, 251, 0.3)',
+              transition: 'all 0.3s ease',
+              transform: 'translateY(0)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px) scale(1.05) rotate(2deg)';
+              e.target.style.boxShadow = '0 8px 25px rgba(240, 147, 251, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0) scale(1) rotate(0deg)';
+              e.target.style.boxShadow = '0 4px 15px rgba(240, 147, 251, 0.3)';
             }}
           >
-            ⭐ 내 리뷰/댓글
+            ⭐ 작성한 리뷰/댓글
           </button>
           <button
             onClick={() => setShowMyLikes(true)}
             style={{
-              padding: '12px 16px',
-              backgroundColor: '#ff6b9d',
+              padding: '20px 12px',
+              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
+              fontSize: '15px',
+              fontWeight: '700',
+              boxShadow: '0 4px 15px rgba(250, 112, 154, 0.3)',
+              transition: 'all 0.3s ease',
+              transform: 'translateY(0)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-4px) scale(1.05) rotate(-2deg)';
+              e.target.style.boxShadow = '0 8px 25px rgba(250, 112, 154, 0.5)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0) scale(1) rotate(0deg)';
+              e.target.style.boxShadow = '0 4px 15px rgba(250, 112, 154, 0.3)';
             }}
           >
             ❤️ 좋아요한 스토리
           </button>
         </div>
       )}
+
+      <div style={{
+        marginTop: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <button
+          onClick={() => setShowStats(true)}
+          style={{
+            padding: '14px 18px',
+            background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            fontSize: '15px',
+            fontWeight: '700',
+            boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)',
+            transition: 'all 0.3s ease',
+            transform: 'translateY(0)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-4px) scale(1.03)';
+            e.target.style.boxShadow = '0 8px 25px rgba(79, 172, 254, 0.5)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0) scale(1)';
+            e.target.style.boxShadow = '0 4px 15px rgba(79, 172, 254, 0.3)';
+          }}
+        >
+          🔍 검색 & 통계
+        </button>
+      </div>
 
       <div style={{
         marginTop: '24px',
@@ -347,6 +509,9 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
       )}
       {showMyLikes && (
         <MyLikes onClose={() => setShowMyLikes(false)} onMoveToLocation={onMoveToLocation} />
+      )}
+      {showStats && (
+        <StatsModal onClose={() => setShowStats(false)} onMoveToLocation={onMoveToLocation} />
       )}
     </div>
   );

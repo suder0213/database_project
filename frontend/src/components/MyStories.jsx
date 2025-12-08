@@ -40,6 +40,10 @@ function MyStories({ onClose, onMoveToLocation }) {
       try {
         await fetch(`/stories/${storyId}`, { method: 'DELETE' });
         setStories(stories.filter(story => story.story_id !== storyId));
+        // 스토리 삭제 이벤트 발생
+        window.dispatchEvent(new Event('storyChanged'));
+        // 지도 마커 새로고침
+        window.loadNearbyStories?.();
       } catch (error) {
         console.error('Delete error:', error);
       }
@@ -71,6 +75,10 @@ function MyStories({ onClose, onMoveToLocation }) {
       await storyAPI.updateStory(editingStory.story_id, editContent, finalImageUrl || null);
       setStories(stories.map(s => s.story_id === editingStory.story_id ? {...s, content: editContent, image_url: finalImageUrl} : s));
       setEditingStory(null);
+      // 스토리 수정 이벤트 발생
+      window.dispatchEvent(new Event('storyChanged'));
+      // 지도 마커 새로고침
+      window.loadNearbyStories?.();
       toast.success('스토리가 수정되었습니다.');
     } catch (error) {
       console.error('Update error:', error);
@@ -104,7 +112,6 @@ function MyStories({ onClose, onMoveToLocation }) {
         onMoveToLocation(response.latitude, response.longitude);
         await new Promise(resolve => setTimeout(resolve, 500));
       }
-      onClose();
       window.openStoryModal?.(response);
     } catch (error) {
       console.error('스토리 불러오기 실패:', error);
@@ -267,7 +274,10 @@ function MyStories({ onClose, onMoveToLocation }) {
                   e.currentTarget.style.boxShadow = '0 4px 15px rgba(40, 167, 69, 0.1)';
                   e.currentTarget.style.borderColor = 'rgba(40, 167, 69, 0.2)';
                 }}
-                onClick={() => handleStoryClick(story)}>
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStoryClick(story);
+                }}>
                   <div style={{
                     display: 'flex',
                     alignItems: 'flex-start',

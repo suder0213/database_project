@@ -243,4 +243,47 @@ export const tagAPI = {
   }
 };
 
+// 통계 및 검색 API
+export const statsAPI = {
+  getUserStats: async (userId) => {
+    const response = await api.get(`/stats/users/${userId}/stats`);
+    return response.data;
+  },
+  
+  getPopularStories: async (minLikes = 10) => {
+    const response = await api.get(`/stats/stories/popular?min_likes=${minLikes}`);
+    return response.data;
+  },
+  
+  getHighRatedPlaces: async (minRating = 4.5) => {
+    const response = await api.get(`/stats/places/high-rated?min_rating=${minRating}`);
+    return response.data;
+  },
+  
+  searchReviewsByPlace: async (placeName) => {
+    const response = await api.get(`/stats/reviews/search/place?place_name=${encodeURIComponent(placeName)}`);
+    return response.data;
+  },
+  
+  getExcellentReviews: async (threshold = 1.5) => {
+    const response = await api.get(`/stats/reviews/excellent?threshold=${threshold}`);
+    return response.data;
+  },
+  
+  getHotReviews: async (placeId) => {
+    const response = await api.get(`/stats/places/${placeId}/hot-reviews`);
+    return response.data;
+  },
+  
+  getReviewsByRating: async (rating) => {
+    const response = await api.get(`/stats/reviews/by-rating?rating=${rating}`);
+    return response.data;
+  },
+  
+  searchPlacesByName: async (name) => {
+    const response = await api.get(`/stats/places/search/name?name=${encodeURIComponent(name)}`);
+    return response.data;
+  }
+};
+
 export default api;

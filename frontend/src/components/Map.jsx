@@ -461,57 +461,6 @@ function Map({ user }) {
 
 
 
-      // 테스트 마커 추가 (DB에 스토리가 없을 때 확인용)
-      const testPosition = new window.kakao.maps.LatLng(37.4979, 127.0276);
-      const testImageUrl = '';
-      
-      const testStory = {
-        story_id: 999,
-        user_name: '테스트',
-        content: '테스트 스토리입니다',
-        image_url: testImageUrl,
-        latitude: 37.4979,
-        longitude: 127.0276,
-        likes: 5,
-        created_at: new Date().toISOString()
-      };
-      
-      const testOverlayContent = createStoryOverlay(testStory);
-      const testCustomOverlay = new window.kakao.maps.CustomOverlay({
-        position: testPosition,
-        content: testOverlayContent,
-        xAnchor: 0.5,
-        yAnchor: 1.0
-      });
-      
-      let testOverlayVisible = false;
-      const testPhotoMarkerElement = createPhotoMarker(testImageUrl, function () {
-        testOverlayVisible = !testOverlayVisible;
-        testCustomOverlay.setMap(testOverlayVisible ? map : null);
-      });
-      
-      const testPhotoMarkerOverlay = new window.kakao.maps.CustomOverlay({
-        position: testPosition,
-        content: testPhotoMarkerElement,
-        xAnchor: 0.5,
-        yAnchor: 0.5
-      });
-      testPhotoMarkerOverlay._testMarker = true;
-      testPhotoMarkerOverlay._storyId = 999;
-      testCustomOverlay._testMarker = true;
-      
-      if (storyMarkersVisible) {
-        testPhotoMarkerOverlay.setMap(map);
-      }
-      allMarkers.push(testPhotoMarkerOverlay);
-      allOverlays.push(testCustomOverlay);
-      
-      console.log('✅ 테스트 마커 생성 완료 (37.4979, 127.0276)');
-      
-      // 지도를 테스트 마커 위치로 이동
-      map.setCenter(testPosition);
-      map.setLevel(3);
-
       // 초기 스토리 로드
       loadNearbyStories();
       

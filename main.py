@@ -9,6 +9,7 @@ from Controller.comment_controller import router as comment_router
 from Controller.like_controller import router as like_router
 from Controller.tag_controller import router as tag_router
 from Controller.upload_controller import router as upload_router
+from Controller.stats_controller import router as stats_router
 
 app = FastAPI()
 
@@ -33,6 +34,7 @@ app.include_router(comment_router)
 app.include_router(like_router)
 app.include_router(tag_router)
 app.include_router(upload_router)
+app.include_router(stats_router)
 
 if __name__ == "__main__":
     import uvicorn

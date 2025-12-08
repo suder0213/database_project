@@ -76,6 +76,8 @@ function PlaceModal({ placeId, placeName, onClose }) {
       setRating(5);
       loadReviews();
       loadPlaceInfo();
+      // 리뷰 작성 이벤트 발생
+      window.dispatchEvent(new Event('reviewCreated'));
       alert('리뷰가 작성되었습니다!');
     } catch (error) {
       console.error('리뷰 작성 실패:', error);
@@ -114,6 +116,8 @@ function PlaceModal({ placeId, placeName, onClose }) {
         await reviewAPI.deleteReview(reviewId);
         loadReviews();
         loadPlaceInfo();
+        // 리뷰 삭제 이벤트 발생
+        window.dispatchEvent(new Event('reviewCreated'));
       } catch (error) {
         console.error('리뷰 삭제 실패:', error);
         alert('리뷰 삭제에 실패했습니다.');
@@ -131,6 +135,8 @@ function PlaceModal({ placeId, placeName, onClose }) {
       setEditingReview(null);
       loadReviews();
       loadPlaceInfo();
+      // 리뷰 수정 이벤트 발생
+      window.dispatchEvent(new Event('reviewCreated'));
     } catch (error) {
       console.error('리뷰 수정 실패:', error);
       alert('리뷰 수정에 실패했습니다.');
@@ -299,20 +305,21 @@ function PlaceModal({ placeId, placeName, onClose }) {
               평점: {rating.toFixed(1)}점
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              {[...Array(5)].map((_, i) => {
-                const starValue = i + 1;
-                const fillPercentage = rating >= starValue ? 100 : rating > i ? (rating - i) * 100 : 0;
+              {[1, 2, 3, 4, 5].map((starNum) => {
+                const fillPercentage = Math.min(100, Math.max(0, (rating - (starNum - 1)) * 100));
                 return (
-                  <div key={i} style={{ position: 'relative', fontSize: '24px', lineHeight: 1 }}>
-                    <span style={{ color: '#ddd' }}>⭐</span>
-                    <span style={{
+                  <div key={starNum} style={{ position: 'relative', fontSize: '28px', lineHeight: 1, display: 'inline-block', width: '28px', height: '28px' }}>
+                    <span style={{ color: '#ddd', position: 'absolute', left: 0, top: 0 }}>★</span>
+                    <div style={{
                       position: 'absolute',
                       left: 0,
                       top: 0,
                       overflow: 'hidden',
                       width: `${fillPercentage}%`,
-                      color: '#ffd700'
-                    }}>⭐</span>
+                      height: '100%'
+                    }}>
+                      <span style={{ color: '#ffd700' }}>★</span>
+                    </div>
                   </div>
                 );
               })}
@@ -322,7 +329,7 @@ function PlaceModal({ placeId, placeName, onClose }) {
               type="range"
               min="0"
               max="5"
-              step="0.5"
+              step="0.1"
               value={rating}
               onChange={(e) => setRating(Number(e.target.value))}
               style={{
@@ -735,20 +742,21 @@ function PlaceModal({ placeId, placeName, onClose }) {
               <div style={{ padding: '20px', background: 'linear-gradient(135deg, #fff9e6 0%, #fff5cc 100%)', borderRadius: '12px', border: '2px solid #ffe066' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', gap: '4px' }}>
-                    {[...Array(5)].map((_, i) => {
-                      const starValue = i + 1;
-                      const fillPercentage = editingReview.rating >= starValue ? 100 : editingReview.rating > i ? (editingReview.rating - i) * 100 : 0;
+                    {[1, 2, 3, 4, 5].map((starNum) => {
+                      const fillPercentage = Math.min(100, Math.max(0, (editingReview.rating - (starNum - 1)) * 100));
                       return (
-                        <div key={i} style={{ position: 'relative', fontSize: '24px', lineHeight: 1 }}>
-                          <span style={{ color: '#ddd' }}>⭐</span>
-                          <span style={{
+                        <div key={starNum} style={{ position: 'relative', fontSize: '28px', lineHeight: 1, display: 'inline-block', width: '28px', height: '28px' }}>
+                          <span style={{ color: '#ddd', position: 'absolute', left: 0, top: 0 }}>★</span>
+                          <div style={{
                             position: 'absolute',
                             left: 0,
                             top: 0,
                             overflow: 'hidden',
                             width: `${fillPercentage}%`,
-                            color: '#ffd700'
-                          }}>⭐</span>
+                            height: '100%'
+                          }}>
+                            <span style={{ color: '#ffd700' }}>★</span>
+                          </div>
                         </div>
                       );
                     })}
@@ -759,7 +767,7 @@ function PlaceModal({ placeId, placeName, onClose }) {
                   type="range"
                   min="0"
                   max="5"
-                  step="0.5"
+                  step="0.1"
                   value={editingReview.rating}
                   onChange={(e) => setEditingReview({...editingReview, rating: parseFloat(e.target.value)})}
                   style={{

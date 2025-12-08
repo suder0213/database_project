@@ -73,8 +73,12 @@ class UserService:
     def update_user(self, user_id: int, user_data: dict):
         cursor = self.db.get_cursor()
         try:
-            sql = "UPDATE USER_T SET name = :1, email = :2 WHERE user_id = :3"
-            cursor.execute(sql, (user_data['name'], user_data['email'], user_id))
+            if 'password' in user_data and user_data['password']:
+                sql = "UPDATE USER_T SET name = :1, email = :2, password = :3 WHERE user_id = :4"
+                cursor.execute(sql, (user_data['name'], user_data['email'], user_data['password'], user_id))
+            else:
+                sql = "UPDATE USER_T SET name = :1, email = :2 WHERE user_id = :3"
+                cursor.execute(sql, (user_data['name'], user_data['email'], user_id))
             self.db.connection.commit()
             return cursor.rowcount > 0
         except Exception as e:

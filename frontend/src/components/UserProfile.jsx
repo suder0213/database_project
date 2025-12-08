@@ -7,7 +7,7 @@ function UserProfile({ onClose }) {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', email: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', password: '' });
 
   useEffect(() => {
     loadUserInfo();
@@ -20,7 +20,7 @@ function UserProfile({ onClose }) {
         const res = await fetch(`/users/${user.user_id}`);
         const data = await res.json();
         setUserInfo(data);
-        setEditForm({ name: data.name, email: data.email });
+        setEditForm({ name: data.name, email: data.email, password: '' });
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch user info:', err);
@@ -36,7 +36,11 @@ function UserProfile({ onClose }) {
 
   const handleUpdate = async () => {
     try {
-      await axios.put(`/users/${user.user_id}`, editForm);
+      const updateData = { name: editForm.name, email: editForm.email };
+      if (editForm.password && editForm.password.trim() !== '') {
+        updateData.password = editForm.password;
+      }
+      await axios.put(`/users/${user.user_id}`, updateData);
       setIsEditing(false);
       loadUserInfo();
       alert('정보가 수정되었습니다.');
@@ -181,6 +185,27 @@ function UserProfile({ onClose }) {
                         onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                       />
                     </div>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '6px' }}>비밀번호 (비워두면 변경안함)</label>
+                      <input
+                        type="password"
+                        value={editForm.password}
+                        onChange={(e) => setEditForm({...editForm, password: e.target.value})}
+                        placeholder="새 비밀번호"
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          border: '2px solid #e0e0e0',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                          transition: 'border-color 0.2s'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                        onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                      />
+                    </div>
                   </>
                 ) : (
                   <>
@@ -251,7 +276,7 @@ function UserProfile({ onClose }) {
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setEditForm({ name: userInfo.name, email: userInfo.email });
+                    setEditForm({ name: userInfo.name, email: userInfo.email, password: '' });
                   }}
                   style={{
                     flex: 1,

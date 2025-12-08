@@ -52,6 +52,8 @@ function StoryCreate({ onClose, onSuccess, latitude, longitude }) {
 
       if (data.success) {
         onSuccess && onSuccess();
+        // 스토리 작성 이벤트 발생
+        window.dispatchEvent(new Event('storyChanged'));
         onClose();
       }
     } catch (error) {

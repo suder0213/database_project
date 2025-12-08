@@ -161,7 +161,6 @@ function MyLikes({ onClose, onMoveToLocation }) {
                       onMoveToLocation(response.latitude, response.longitude);
                       await new Promise(resolve => setTimeout(resolve, 500));
                     }
-                    onClose();
                     window.openStoryModal?.(response);
                   } catch (error) {
                     console.error('스토리 불러오기 실패:', error);
