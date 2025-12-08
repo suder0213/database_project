@@ -75,7 +75,7 @@ function LoginModal({ isOpen, onClose, onLogin }) {
       }
     } catch (error) {
       console.error('Register error:', error);
-      setError('회원가입 중 오류가 발생했습니다.');
+      setError('이미 사용 중인 아이디입니다.');
     } finally {
       setIsLoading(false);
     }

@@ -69,9 +69,10 @@ function Map({ user }) {
       let placeMarkersVisible = true;
       let isMarkerClick = false;
 
-      // 사진이 들어간 커스텀 마커 생성 함수
+      // 사진이 들어간 커스텀 마커 생성 함수 (최적화)
       const createPhotoMarker = (photoUrl, clickHandler) => {
         const markerDiv = document.createElement('div');
+        markerDiv.className = 'photo-marker';
         markerDiv.style.cssText = `
           width: 45px;
           height: 80px;
@@ -89,35 +90,25 @@ function Map({ user }) {
         `;
 
         if (photoUrl && photoUrl !== 'null' && photoUrl !== 'undefined' && photoUrl !== '') {
-          const img = document.createElement('img');
+          const img = new Image();
           img.style.cssText = `
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0;
-            transition: opacity 0.2s;
           `;
-          
-          img.onload = function() {
-            this.style.opacity = '1';
-          };
-          
-          img.onerror = function() {
-            this.style.display = 'none';
-            markerDiv.innerHTML = '📸';
-          };
-          
+          img.loading = 'lazy';
           img.src = photoUrl;
+          img.onerror = () => { markerDiv.innerHTML = '📸'; };
           markerDiv.appendChild(img);
         } else {
           markerDiv.innerHTML = '📸';
         }
 
         if (clickHandler) {
-          markerDiv.addEventListener('click', function (event) {
+          markerDiv.onclick = (e) => {
             isMarkerClick = true;
-            clickHandler(event);
-          });
+            clickHandler(e);
+          };
         }
 
         return markerDiv;
@@ -402,7 +393,8 @@ function Map({ user }) {
             return;
           }
 
-          // 새로운 스토리만 마커 생성 (배치 처리)
+          // 새로운 스토리만 마커 생성 (최적화된 배치 처리)
+          const fragment = document.createDocumentFragment();
           const newMarkers = [];
           const newOverlays = [];
           
@@ -441,16 +433,14 @@ function Map({ user }) {
             newMarkers.push(photoMarkerOverlay);
           });
           
-          // 배치로 한번에 추가 (토글 상태 확인)
-          requestAnimationFrame(() => {
-            newMarkers.forEach(marker => {
-              if (storyMarkersVisible) {
-                marker.setMap(map);
-              }
+          // 배치로 한번에 추가
+          if (storyMarkersVisible && newMarkers.length > 0) {
+            requestAnimationFrame(() => {
+              newMarkers.forEach(marker => marker.setMap(map));
             });
-            allMarkers.push(...newMarkers);
-            allOverlays.push(...newOverlays);
-          });
+          }
+          allMarkers.push(...newMarkers);
+          allOverlays.push(...newOverlays);
           
           console.log(`✅ 총 ${stories.length}개 스토리 마커 생성 완료`);
         } catch (error) {
@@ -583,7 +573,7 @@ function Map({ user }) {
       
       setTimeout(() => loadNearbyPlaces(), 500);
 
-      // 지도 이동 시 스토리/장소 로드
+      // 지도 이동 시 스토리/장소 로드 (디바운스 최적화)
       let idleTimeout;
       let isLoading = false;
       
@@ -594,9 +584,9 @@ function Map({ user }) {
         idleTimeout = setTimeout(() => {
           isLoading = true;
           Promise.all([loadNearbyStories(), loadNearbyPlaces()]).finally(() => {
-            setTimeout(() => { isLoading = false; }, 500);
+            isLoading = false;
           });
-        }, 2000);
+        }, 800);
       });
 
       // 맵 클릭 이벤트 (새 스토리 작성)

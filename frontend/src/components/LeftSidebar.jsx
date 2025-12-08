@@ -22,13 +22,13 @@ function LeftSidebar({ showSidebar, setShowSidebar, sidebarOpacity, setSidebarOp
     loadAllTags();
     if (isLoggedIn) {
       loadUserStats();
+    } else {
+      setUserStats(null);
     }
 
-    // 리뷰 작성 이벤트 리스너
     const handleReviewCreated = () => {
       loadUserStats();
     };
-    // 스토리 작성/삭제 이벤트 리스너
     const handleStoryChanged = () => {
       loadUserStats();
     };
