@@ -29,7 +29,14 @@ function UserProfile({ onClose }) {
     }
   };
 
+  // [수정] 로그아웃 시 저장소 비우기
   const handleLogout = () => {
+    // 1. 브라우저 저장소 청소
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+
+    // 2. 기존 로그아웃 및 새로고침
     logout();
     window.location.reload();
   };
@@ -55,6 +62,12 @@ function UserProfile({ onClose }) {
       try {
         await axios.delete(`/users/${user.user_id}`);
         alert('회원탈퇴가 완료되었습니다.');
+        
+        // 탈퇴 시에도 저장소 비우기 적용
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('userName');
+        
         logout();
         window.location.reload();
       } catch (error) {
@@ -218,7 +231,7 @@ function UserProfile({ onClose }) {
                       <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>이메일</div>
                       <div style={{ fontSize: '14px', color: '#333' }}>{userInfo.email}</div>
                     </div>
-                
+                  
                 <div style={{
                   padding: '12px',
                   backgroundColor: '#f8f9fa',

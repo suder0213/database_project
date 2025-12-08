@@ -1,11 +1,11 @@
-from database import db_connection
+import oracledb
 
 class StatsService:
-    def __init__(self):
-        self.db = db_connection
+    def __init__(self, db: oracledb.Connection):
+        self.db = db
 
     def get_user_stats(self, user_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("SELECT COUNT(*) FROM STORY WHERE USER_ID = :1", (user_id,))
             story_count = cursor.fetchone()[0]
@@ -26,7 +26,7 @@ class StatsService:
             cursor.close()
 
     def get_popular_stories(self, min_likes: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("""
                 SELECT s.STORY_ID, s.CONTENT, s.LATITUDE, s.LONGITUDE, s.IMAGE_URL, 
@@ -60,7 +60,7 @@ class StatsService:
             cursor.close()
 
     def get_high_rated_places(self, min_rating: float):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("""
                 SELECT p.PLACE_ID, p.NAME, p.LATITUDE, p.LONGITUDE, 
@@ -87,7 +87,7 @@ class StatsService:
             cursor.close()
 
     def search_reviews_by_place(self, place_name: str):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("""
                 SELECT r.REVIEW_ID, r.TITLE, r.CONTENT, r.RATING, p.NAME as place_name, r.CREATED_AT
@@ -115,7 +115,7 @@ class StatsService:
             cursor.close()
 
     def get_excellent_reviews(self, threshold: float):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("SELECT NVL(AVG(RATING), 0) FROM REVIEW")
             avg_rating = cursor.fetchone()[0] or 0
@@ -146,7 +146,7 @@ class StatsService:
             cursor.close()
 
     def get_hot_reviews(self, place_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("""
                 SELECT r.REVIEW_ID, r.TITLE, r.RATING, COUNT(c.COMMENT_ID) as comment_count, r.CREATED_AT
@@ -172,7 +172,7 @@ class StatsService:
             cursor.close()
 
     def get_reviews_by_rating(self, rating: float):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("""
                 SELECT r.REVIEW_ID, r.TITLE, r.CONTENT, r.RATING, p.NAME as place_name, r.CREATED_AT
@@ -200,7 +200,7 @@ class StatsService:
             cursor.close()
 
     def search_places_by_name(self, name: str):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             cursor.execute("""
                 SELECT p.PLACE_ID, p.NAME, p.LATITUDE, p.LONGITUDE, 

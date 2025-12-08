@@ -29,6 +29,11 @@ function LoginModal({ isOpen, onClose, onLogin }) {
       const response = await authAPI.login(loginForm.id, loginForm.password);
       
       if (response.user_id) {
+
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userId', response.user_id);
+        localStorage.setItem('userName', response.name || loginForm.id); // 이름도 저장하면 좋음
+        
         saveAuthData({
           user_id: response.user_id,
           id: loginForm.id,

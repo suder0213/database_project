@@ -1,14 +1,23 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends # Depends 추가
 from Service.review_service import ReviewService
 from Enitity.Review.dto.review_create_dto import ReviewCreateDto
 from Enitity.Review.dto.review_update_dto import ReviewUpdateDto
 
+import oracledb
+from database import get_db
+
 router = APIRouter(prefix="/reviews", tags=["reviews"])
-review_service = ReviewService()
+
+# [삭제] review_service = ReviewService() <-- 전역 변수 삭제
 
 # 1. 리뷰 작성
 @router.post("")
-def create_review(review_data: ReviewCreateDto):
+def create_review(
+    review_data: ReviewCreateDto,
+    db: oracledb.Connection = Depends(get_db) # [추가] DB 연결 주입
+):
+    review_service = ReviewService(db) # [추가] 서비스 생성
+    
     review_id = review_service.create_review(review_data.model_dump())
     if review_id:
         return {"success": True, "review_id": review_id}
@@ -16,7 +25,12 @@ def create_review(review_data: ReviewCreateDto):
 
 # 2. 리뷰 상세 조회 (단건)
 @router.get("/{review_id}")
-def get_review(review_id: int):
+def get_review(
+    review_id: int,
+    db: oracledb.Connection = Depends(get_db) # [추가]
+):
+    review_service = ReviewService(db) # [추가]
+    
     review = review_service.get_review_by_id(review_id)
     if review:
         return {
@@ -32,7 +46,12 @@ def get_review(review_id: int):
 
 # 3. 장소별 리뷰 목록
 @router.get("/place/{place_id}")
-def get_place_reviews(place_id: int):
+def get_place_reviews(
+    place_id: int,
+    db: oracledb.Connection = Depends(get_db) # [추가]
+):
+    review_service = ReviewService(db) # [추가]
+    
     reviews = review_service.get_reviews_by_place(place_id)
     return {
         "reviews": [
@@ -50,7 +69,12 @@ def get_place_reviews(place_id: int):
 
 # 4. 사용자별 리뷰 목록 (좌표 포함)
 @router.get("/user/{user_id}")
-def get_user_reviews(user_id: int):
+def get_user_reviews(
+    user_id: int,
+    db: oracledb.Connection = Depends(get_db) # [추가]
+):
+    review_service = ReviewService(db) # [추가]
+    
     reviews = review_service.get_reviews_by_user(user_id)
     return {
         "reviews": [
@@ -61,8 +85,8 @@ def get_user_reviews(user_id: int):
                 "rating": r.rating,
                 "place_id": r.place_id,
                 "place_name": r.place_name,
-                "latitude": r.latitude,
-                "longitude": r.longitude,
+                "latitude": r.latitude if hasattr(r, 'latitude') else None,
+                "longitude": r.longitude if hasattr(r, 'longitude') else None,
                 "created_at": r.created_at
             } for r in reviews
         ]
@@ -70,7 +94,13 @@ def get_user_reviews(user_id: int):
 
 # 5. 리뷰 수정
 @router.put("/{review_id}")
-def update_review(review_id: int, review_data: ReviewUpdateDto):
+def update_review(
+    review_id: int, 
+    review_data: ReviewUpdateDto,
+    db: oracledb.Connection = Depends(get_db) # [추가]
+):
+    review_service = ReviewService(db) # [추가]
+    
     success = review_service.update_review(review_id, review_data.model_dump())
     if success:
         return {"success": True}
@@ -78,7 +108,12 @@ def update_review(review_id: int, review_data: ReviewUpdateDto):
 
 # 6. 리뷰 삭제
 @router.delete("/{review_id}")
-def delete_review(review_id: int):
+def delete_review(
+    review_id: int,
+    db: oracledb.Connection = Depends(get_db) # [추가]
+):
+    review_service = ReviewService(db) # [추가]
+    
     success = review_service.delete_review(review_id)
     if success:
         return {"success": True}

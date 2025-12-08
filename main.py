@@ -11,8 +11,19 @@ from Controller.tag_controller import router as tag_router
 from Controller.upload_controller import router as upload_router
 from Controller.stats_controller import router as stats_router
 
-app = FastAPI()
+from contextlib import asynccontextmanager
+from database import db
 
+# [추가] 수명주기 관리 (서버 켜질 때 풀 만들고, 꺼질 때 닫기)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🚀 Server starting... Connecting to DB")
+    db.create_pool() # 풀 생성
+    yield
+    print("🛑 Server shutting down... Closing DB connection")
+    db.close_pool() # 풀 닫기
+
+app = FastAPI(lifespan=lifespan) # lifespan 등록
 # Static 파일 서빙
 app.mount("/static", StaticFiles(directory="static"), name="static")
 

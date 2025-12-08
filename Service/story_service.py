@@ -1,11 +1,10 @@
-from database import db_connection
 from Enitity.Story import Story
 from datetime import datetime
 import oracledb
 
 class StoryService:
-    def __init__(self):
-        self.db = db_connection
+    def __init__(self, db: oracledb.Connection):
+        self.db = db
     
     def _get_value(self, val):
         if isinstance(val, oracledb.LOB):
@@ -14,7 +13,7 @@ class StoryService:
     
     # 1. 스토리 생성 (명세서: story_id 반환 필요)
     def create_story(self, story_data: dict):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # Oracle RETURNING 절을 사용하여 생성된 ID를 바로 받아옵니다.
             sql = """
@@ -33,7 +32,7 @@ class StoryService:
                 story_id_var
             ))
             
-            self.db.connection.commit()
+            self.db.commit()
             return story_id_var.getvalue()[0] # 생성된 story_id 반환
             
         except Exception as e:
@@ -44,7 +43,7 @@ class StoryService:
 
     # 2. 스토리 ID로 조회
     def get_story_by_id(self, story_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = """
                 SELECT s.story_id, s.user_id, s.content, s.image_url, s.latitude, s.longitude, s.likes, s.created_at, u.name
@@ -86,7 +85,7 @@ class StoryService:
 
     # 3. 내 스토리 조회
     def get_stories_by_user(self, user_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # USER_T와 조인하여 user_name까지 가져옴 (명세서 형식 통일성을 위해)
             sql = """
@@ -116,7 +115,7 @@ class StoryService:
 
     # 4. 지도 영역으로 스토리 검색 (bounds)
     def search_stories_by_bounds(self, sw_lat: float, sw_lng: float, ne_lat: float, ne_lng: float):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             print(f"Searching stories in bounds: SW({sw_lat}, {sw_lng}) ~ NE({ne_lat}, {ne_lng})")
             
@@ -151,7 +150,7 @@ class StoryService:
     
     # 5. 위치 기반 스토리 검색 (간단한 방식)
     def search_stories_by_location(self, lat: float, lng: float, radius: float = 1.0):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             print(f"Searching stories at lat={lat}, lng={lng}, radius={radius}km")
             
@@ -228,7 +227,7 @@ class StoryService:
     
     # 6. 스토리 수정
     def update_story(self, story_id: int, story_data: dict):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             updates = []
             params = []
@@ -248,7 +247,7 @@ class StoryService:
             sql = f"UPDATE STORY SET {', '.join(updates)} WHERE story_id = :{len(params)}"
             
             cursor.execute(sql, params)
-            self.db.connection.commit()
+            self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
             print(f"Error updating story: {e}")
@@ -258,11 +257,11 @@ class StoryService:
     
     # 7. 스토리 삭제
     def delete_story(self, story_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = "DELETE FROM STORY WHERE story_id = :1"
             cursor.execute(sql, (story_id,))
-            self.db.connection.commit()
+            self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
             print(f"Error deleting story: {e}")
