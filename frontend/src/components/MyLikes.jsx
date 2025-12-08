@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { likeAPI, storyAPI } from '../services/api';
-import StoryModal from './StoryModal';
 
 function MyLikes({ onClose, onMoveToLocation }) {
   const [likes, setLikes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStory, setSelectedStory] = useState(null);
   const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
@@ -163,7 +161,8 @@ function MyLikes({ onClose, onMoveToLocation }) {
                       onMoveToLocation(response.latitude, response.longitude);
                       await new Promise(resolve => setTimeout(resolve, 500));
                     }
-                    setSelectedStory(response);
+                    onClose();
+                    window.openStoryModal?.(response);
                   } catch (error) {
                     console.error('스토리 불러오기 실패:', error);
                   }
@@ -226,13 +225,6 @@ function MyLikes({ onClose, onMoveToLocation }) {
         </div>
       </div>
       </div>
-      
-      {selectedStory && (
-        <StoryModal
-          story={selectedStory}
-          onClose={() => setSelectedStory(null)}
-        />
-      )}
     </>
   );
 }
