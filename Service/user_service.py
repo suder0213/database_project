@@ -16,6 +16,7 @@ class UserService:
             self.db.commit()
             return True
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating user: {e}")
             return False
         finally:
@@ -32,6 +33,7 @@ class UserService:
             self.db.commit()
             return user_id_var.getvalue()[0]
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating user: {e}")
             return None
         finally:
@@ -82,6 +84,7 @@ class UserService:
             self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error updating user: {e}")
             return False
         finally:
@@ -96,6 +99,7 @@ class UserService:
             self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error deleting user: {e}")
             return False
         finally:

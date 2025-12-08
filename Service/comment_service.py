@@ -31,6 +31,7 @@ class CommentService:
             self.db.commit()
             return comment_id_var.getvalue()[0]
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating comment: {e}")
             return None
         finally:
@@ -141,6 +142,7 @@ class CommentService:
             self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error updating comment: {e}")
             return False
         finally:
@@ -155,6 +157,7 @@ class CommentService:
             self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error deleting comment: {e}")
             return False
         finally:

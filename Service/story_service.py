@@ -36,6 +36,7 @@ class StoryService:
             return story_id_var.getvalue()[0] # 생성된 story_id 반환
             
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error creating story: {e}")
             return None
         finally:
@@ -250,6 +251,7 @@ class StoryService:
             self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error updating story: {e}")
             return False
         finally:
@@ -264,6 +266,7 @@ class StoryService:
             self.db.commit()
             return cursor.rowcount > 0
         except Exception as e:
+            self.db.connection.rollback()
             print(f"Error deleting story: {e}")
             return False
         finally:

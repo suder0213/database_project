@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { likeAPI, tagAPI } from '../services/api';
 
 function StoryModal({ story, onClose }) {
-  const likes = story.likes || 0;
+  const [currentLikes, setCurrentLikes] = useState(story.likes || 0);
   const imageUrl = story.image_url && story.image_url !== 'null' && story.image_url !== 'undefined' ? story.image_url : '';
   const userName = story.user_name || '익명';
   const content = story.content || '';
@@ -12,6 +12,8 @@ function StoryModal({ story, onClose }) {
   const [tags, setTags] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [showHeartAnim, setShowHeartAnim] = useState(false);
+  const [heartAnimType, setHeartAnimType] = useState('like');
   const userId = localStorage.getItem('user_id');
 
   useEffect(() => {
@@ -104,6 +106,18 @@ function StoryModal({ story, onClose }) {
           from { transform: translateY(20px) scale(0.96); opacity: 0; }
           to { transform: translateY(0) scale(1); opacity: 1; }
         }
+        @keyframes heartBurst {
+          0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+          50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+          100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+        @keyframes heartBreak {
+          0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+          25% { transform: translate(-50%, -50%) scale(1.1) rotate(-10deg); opacity: 1; }
+          50% { transform: translate(-50%, -50%) scale(1.2) rotate(10deg); opacity: 0.8; }
+          75% { transform: translate(-50%, -50%) scale(0.9) rotate(-5deg); opacity: 0.5; }
+          100% { transform: translate(-50%, -50%) scale(0.5) rotate(0deg); opacity: 0; }
+        }
       `}</style>
       
       <div style={{
@@ -118,7 +132,27 @@ function StoryModal({ story, onClose }) {
         animation: 'modalSlideUp 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
       }} onClick={(e) => e.stopPropagation()}>
         
-        <div style={{
+        <div 
+          onDoubleClick={async (e) => {
+            e.stopPropagation();
+            if (!userId) {
+              alert('로그인이 필요합니다.');
+              return;
+            }
+            try {
+              const response = await likeAPI.toggleLike(story.story_id);
+              if (response.success) {
+                setCurrentLikes(response.total_likes);
+                setHeartAnimType(response.liked ? 'like' : 'unlike');
+                setShowHeartAnim(true);
+                setTimeout(() => setShowHeartAnim(false), 600);
+              }
+            } catch (error) {
+              console.error('좋아요 실패:', error);
+              alert('좋아요 처리에 실패했습니다.');
+            }
+          }}
+          style={{
           height: '100%',
           position: 'relative',
           overflow: 'hidden',
@@ -126,7 +160,8 @@ function StoryModal({ story, onClose }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '80px'
+          fontSize: '80px',
+          userSelect: 'none'
         }}>
           {imageUrl ? (
             <img src={imageUrl} alt="Story" style={{
@@ -138,6 +173,22 @@ function StoryModal({ story, onClose }) {
               left: 0
             }} />
           ) : '📸'}
+          
+          {/* 하트 애니메이션 */}
+          {showHeartAnim && (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '80px',
+              zIndex: 10,
+              pointerEvents: 'none',
+              animation: heartAnimType === 'like' ? 'heartBurst 0.6s ease-out' : 'heartBreak 0.6s ease-out'
+            }}>
+              {heartAnimType === 'like' ? '❤️' : '💔'}
+            </div>
+          )}
           
           {/* 상단 사용자 정보 */}
           <div style={{
@@ -314,7 +365,7 @@ function StoryModal({ story, onClose }) {
                   textDecoration: 'underline'
                 }}
               >
-                ❤️ {likes}
+                ❤️ {currentLikes}
               </button>
               <span style={{ fontSize: '12px' }}>{createdAt}</span>
             </div>
