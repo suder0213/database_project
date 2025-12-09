@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCurrentUser, logout } from '../utils/auth';
-import axios from 'axios';
+import api from '../services/api';
 
 function UserProfile({ onClose }) {
   const user = getCurrentUser();
@@ -17,10 +17,9 @@ function UserProfile({ onClose }) {
   const loadUserInfo = async () => {
     if (user?.user_id) {
       try {
-        const res = await fetch(`/users/${user.user_id}`);
-        const data = await res.json();
-        setUserInfo(data);
-        setEditForm({ name: data.name, email: data.email, password: '' });
+        const res = await api.get(`/users/${user.user_id}`);
+        setUserInfo(res.data);
+        setEditForm({ name: res.data.name, email: res.data.email, password: '' });
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch user info:', err);
@@ -47,7 +46,7 @@ function UserProfile({ onClose }) {
       if (editForm.password && editForm.password.trim() !== '') {
         updateData.password = editForm.password;
       }
-      await axios.put(`/users/${user.user_id}`, updateData);
+      await api.put(`/users/${user.user_id}`, updateData);
       setIsEditing(false);
       loadUserInfo();
       alert('정보가 수정되었습니다.');
@@ -60,7 +59,7 @@ function UserProfile({ onClose }) {
   const handleDelete = async () => {
     if (window.confirm('정말로 회원탈퇴하시겠습니까? 모든 데이터가 삭제됩니다.')) {
       try {
-        await axios.delete(`/users/${user.user_id}`);
+        await api.delete(`/users/${user.user_id}`);
         alert('회원탈퇴가 완료되었습니다.');
         
         // 탈퇴 시에도 저장소 비우기 적용

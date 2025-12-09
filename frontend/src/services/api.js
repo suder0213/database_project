@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// 브라우저는 항상 localhost 사용 (Docker 외부)
 const API_BASE_URL = 'http://localhost:8000';
 
 // Axios 인스턴스 생성

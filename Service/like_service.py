@@ -60,7 +60,7 @@ class LikeService:
 
     # 2. 좋아요 상태 확인
     def check_like_status(self, user_id: int, story_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = "SELECT 1 FROM LIKE_T WHERE user_id = :1 AND story_id = :2"
             cursor.execute(sql, (user_id, story_id))
@@ -73,7 +73,7 @@ class LikeService:
 
     # 3. 스토리별 좋아요 목록 (수정됨: like_id 조회 제거)
     def get_likes_by_story(self, story_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # like_id 컬럼이 없으므로 조회에서 제외
             sql = """
@@ -103,7 +103,7 @@ class LikeService:
 
     # 4. 사용자별 좋아요 목록 (수정됨: like_id 조회 제거)
     def get_likes_by_user(self, user_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             # like_id 컬럼 제외
             sql = """
@@ -133,7 +133,7 @@ class LikeService:
 
     # 5. 스토리 좋아요 수 조회
     def get_like_count(self, story_id: int):
-        cursor = self.db.get_cursor()
+        cursor = self.db.cursor()
         try:
             sql = "SELECT COUNT(*) FROM LIKE_T WHERE story_id = :1"
             cursor.execute(sql, (story_id,))

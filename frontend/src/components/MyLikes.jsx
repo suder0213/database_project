@@ -8,6 +8,7 @@ function MyLikes({ onClose, onMoveToLocation }) {
 
   useEffect(() => {
     loadLikes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadLikes = async () => {

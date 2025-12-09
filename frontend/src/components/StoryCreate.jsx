@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { storyAPI } from '../services/api';
 import { getUserId } from '../utils/auth';
+import api from '../services/api';
 
 function StoryCreate({ onClose, onSuccess, latitude, longitude }) {
   const [content, setContent] = useState('');
@@ -26,29 +27,21 @@ function StoryCreate({ onClose, onSuccess, latitude, longitude }) {
       if (imageFile) {
         const formData = new FormData();
         formData.append('file', imageFile);
-        const uploadResponse = await fetch('/upload/image', {
-          method: 'POST',
-          body: formData
+        const uploadResponse = await api.post('/upload/image', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
-        const uploadData = await uploadResponse.json();
-        if (uploadData.success) {
-          imageUrl = uploadData.url;
+        if (uploadResponse.data.success) {
+          imageUrl = uploadResponse.data.url;
         }
       }
 
-      const response = await fetch('/stories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: parseInt(userId),
-          content,
-          latitude,
-          longitude,
-          image_url: imageUrl
-        })
+      const data = await storyAPI.createStory({
+        user_id: parseInt(userId),
+        content,
+        latitude,
+        longitude,
+        image_url: imageUrl
       });
-      
-      const data = await response.json();
 
       if (data.success) {
         onSuccess && onSuccess();

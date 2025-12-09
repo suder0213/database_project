@@ -3,6 +3,7 @@ import { storyAPI } from '../services/api';
 import { getUserId } from '../utils/auth';
 import StoryModal from './StoryModal';
 import toast from '../utils/toast';
+import api from '../services/api';
 
 function MyStories({ onClose, onMoveToLocation }) {
   const [stories, setStories] = useState([]);
@@ -23,9 +24,8 @@ function MyStories({ onClose, onMoveToLocation }) {
     try {
       const userId = getUserId();
       if (userId) {
-        const response = await fetch(`/stories/user/${userId}`);
-        const data = await response.json();
-        setStories(data.stories || []);
+        const response = await storyAPI.getUserStories(userId);
+        setStories(response.stories || []);
       }
     } catch (error) {
       console.error('Failed to load stories:', error);
@@ -38,7 +38,7 @@ function MyStories({ onClose, onMoveToLocation }) {
   const handleDeleteStory = async (storyId) => {
     if (window.confirm('정말로 이 스토리를 삭제하시겠습니까?')) {
       try {
-        await fetch(`/stories/${storyId}`, { method: 'DELETE' });
+        await storyAPI.deleteStory(storyId);
         setStories(stories.filter(story => story.story_id !== storyId));
         // 스토리 삭제 이벤트 발생
         window.dispatchEvent(new Event('storyChanged'));
@@ -64,12 +64,10 @@ function MyStories({ onClose, onMoveToLocation }) {
       if (editImageFile) {
         const formData = new FormData();
         formData.append('file', editImageFile);
-        const uploadResponse = await fetch('/upload', {
-          method: 'POST',
-          body: formData
+        const uploadResponse = await api.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
         });
-        const uploadData = await uploadResponse.json();
-        finalImageUrl = uploadData.url;
+        finalImageUrl = uploadResponse.data.url;
       }
       
       await storyAPI.updateStory(editingStory.story_id, editContent, finalImageUrl || null);
